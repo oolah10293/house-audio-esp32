@@ -21,6 +21,26 @@ If music is already halfway through a song when a node turns on, the node joins 
 
 If the server is unavailable, the node should simply keep retrying. No phone interaction should be required.
 
+## Permanent server relationship
+
+The permanent house-audio server is the existing Raspberry Pi that already owns the music files locally.
+
+Server-side music root:
+
+```text
+/mnt/sharedrive/Shared Music
+```
+
+That path is **server-side only**. The ESP32 does not browse or mount it.
+
+The planned production path is:
+
+```text
+Raspberry Pi local files -> MPD -> Snapserver -> ESP32-S3 Snapcast client -> I2S DAC -> amplifier/stereo
+```
+
+The first ESP32 proof should use the same Snapserver instance intended to remain in production. No disposable proof server is planned.
+
 ## Hard power-off is intentional
 
 Many nodes will live inside existing radios/stereos whose original power switch physically removes power. That behavior is a design requirement, not a fault condition.
@@ -43,16 +63,18 @@ For mono equipment, stereo DAC outputs must be summed through resistors rather t
 
 The ESP32 node should **not** mount the music SMB share or build playlists in the planned production architecture. The central house-audio server owns the library, queue, current position, and synchronized stream.
 
-A direct SMB-on-ESP32 test was considered early, before the architecture pivoted to Snapcast-style synchronized renderers. That test is now considered optional and low priority because it does not validate the production data path.
+A direct SMB-on-ESP32 test was considered early, before the architecture pivoted to Snapcast-style synchronized renderers. That test is now optional and low priority because it does not validate the production data path.
 
 ## Phase 1: serial-only Snapcast client proof — FIRST TEST
 
 The first meaningful hardware test should use one ESP32-S3 with USB serial and no DAC.
 
-A temporary Snapserver-compatible source must be available on the LAN for the test. The S3 should:
+Prerequisite: the Raspberry Pi has the permanent MPD -> Snapserver path running far enough to produce a real Snapcast stream.
+
+The S3 should:
 
 1. connect to Wi-Fi
-2. discover or connect to the Snapcast server
+2. discover or connect to the Pi's Snapserver
 3. complete Snapcast client/stream negotiation
 4. continuously receive real stream data
 5. report useful diagnostics over USB serial
@@ -114,10 +136,10 @@ Do not freeze the PCB until the ESP32 client, DAC choice, power arrangement, and
 
 ## Related projects
 
-- [house-audio-server](https://github.com/oolah10293/house-audio-server) — central playback/session authority and synchronized stream
+- [house-audio-server](https://github.com/oolah10293/house-audio-server) — Raspberry Pi playback/session authority and Snapserver
 - [smb-music-player](https://github.com/oolah10293/smb-music-player) — Android player/controller
 - [smb-player-pc](https://github.com/oolah10293/smb-player-pc) — Windows player/controller
 
 ## Status
 
-Waiting for the first spare ESP32-S3 to begin **Phase 1: serial-only Snapcast client reception proof**.
+Waiting for the first spare ESP32-S3 and the first permanent Pi MPD/Snapserver configuration to begin **Phase 1: serial-only Snapcast client reception proof**.
