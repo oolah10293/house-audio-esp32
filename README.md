@@ -12,7 +12,7 @@ On power-up it should:
 
 1. boot
 2. join the home Wi-Fi
-3. discover the house-audio service on the local LAN
+3. discover the house-audio / Snapcast service on the local LAN
 4. connect to the synchronized audio stream
 5. fill its timing/audio buffer
 6. begin output at the **current house playback timestamp**
@@ -32,74 +32,49 @@ The ESP32 firmware must tolerate abrupt power removal with no shutdown sequence.
 Baseline direction:
 
 ```text
-Wi-Fi -> ESP32-S3 -> I2S -> external DAC -> existing amplifier/stereo -> speaker
+Wi-Fi -> ESP32-S3 -> Snapcast client -> I2S -> external DAC -> existing amplifier/stereo -> speaker
 ```
 
 A PCM5102A-class line-level DAC is the current likely direction, but the exact DAC is not yet locked. Existing amplifiers and analog volume controls should be preserved where practical.
 
 For mono equipment, stereo DAC outputs must be summed through resistors rather than tied directly together.
 
-## Production SMB rule
+## SMB rule
 
-The finished ESP32 node should **not** need to mount the music share or build playlists. The central house-audio server is expected to own the music library, queue, current position, and synchronized stream.
+The ESP32 node should **not** mount the music SMB share or build playlists in the planned production architecture. The central house-audio server owns the library, queue, current position, and synchronized stream.
 
-However, the **first hardware test intentionally does use SMB directly** because the house-audio server does not exist yet. That is a feasibility test, not the final architecture.
+A direct SMB-on-ESP32 test was considered early, before the architecture pivoted to Snapcast-style synchronized renderers. That test is now considered optional and low priority because it does not validate the production data path.
 
-## Phase 0: direct SMB feasibility test — FIRST TEST
+## Phase 1: serial-only Snapcast client proof — FIRST TEST
 
-The very first test uses only:
+The first meaningful hardware test should use one ESP32-S3 with USB serial and no DAC.
 
-- one ESP32-S3
-- USB cable
-- the existing home Wi-Fi
-- the existing SMB music share
-- no DAC
-- no amplifier
-- no house-audio server
-
-The S3 should:
+A temporary Snapserver-compatible source must be available on the LAN for the test. The S3 should:
 
 1. connect to Wi-Fi
-2. connect/authenticate to the real SMB share
-3. list the target music directory
-4. open a real MP3 or FLAC file
-5. read the **entire file** sequentially in chunks
-6. discard the bytes after reading
-7. report the result over USB serial
+2. discover or connect to the Snapcast server
+3. complete Snapcast client/stream negotiation
+4. continuously receive real stream data
+5. report useful diagnostics over USB serial
 
-Useful serial diagnostics:
+Useful diagnostics include:
 
-- SMB connection/authentication state
-- directory-listing result
-- selected file/path
-- file size
-- total bytes read
-- elapsed time and average throughput
-- read errors/retries
-- optional CRC32/checksum
-- final PASS/FAIL
+- Wi-Fi connection state
+- server discovery / address
+- stream connection state
+- codec / stream parameters
+- packet and byte counters
+- buffer / timing state where available
+- reconnect attempts and failures
+- final PASS/FAIL indication for a sustained receive test
 
-This answers the immediate question: **can the ESP32-S3 reliably access the real SMB music library?**
-
-## Phase 1: synchronized-stream proof
-
-After Phase 0 passes, stand up the minimum house-audio/synchronization server and repurpose the same S3 for a serial-only renderer test.
-
-Acceptance criteria:
-
-- connects to Wi-Fi
-- discovers or reaches the house audio/sync server
-- completes stream/client negotiation
-- receives real stream packets continuously
-- reports packet/byte counts, timing/buffer state, failures, and reconnects over serial
-
-No DAC is required yet.
+This validates the part that matters for the finished nodes: **can this exact ESP32-S3 board operate reliably as a synchronized Snapcast renderer?**
 
 ## Synchronization direction
 
-Use an existing Snapcast-compatible ESP32 client if it proves reliable on ESP32-S3. The goal is timestamped/buffered playback with clock correction, not several independent decoders attempting to seek to approximately the same position.
+Prefer an existing ESP32 Snapcast-client implementation rather than inventing a synchronization protocol. The goal is timestamped/buffered playback with clock correction, not several independent decoders attempting to seek to approximately the same position.
 
-The exact client/transport implementation remains open until tested on real hardware.
+The exact ESP32 client implementation and configuration remain open until tested on the real S3 hardware.
 
 ## Phase 2: one real audio node
 
@@ -145,4 +120,4 @@ Do not freeze the PCB until the ESP32 client, DAC choice, power arrangement, and
 
 ## Status
 
-Waiting for the first spare ESP32-S3 to begin **Phase 0: direct SMB access and full-file read over serial**.
+Waiting for the first spare ESP32-S3 to begin **Phase 1: serial-only Snapcast client reception proof**.
