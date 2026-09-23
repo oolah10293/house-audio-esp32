@@ -4,9 +4,9 @@ ESP32-S3 synchronized audio renderer firmware for the whole-house music system.
 
 These nodes are intended to hide inside vintage radios, stereos, powered speakers, or small standalone boxes and make them outputs for the single house playback session.
 
-## Core behavior
+## Core production behavior
 
-An ESP32 node is a **renderer**, not an independent music player.
+In the finished system, an ESP32 node is a **renderer**, not an independent music player.
 
 On power-up it should:
 
@@ -39,29 +39,67 @@ A PCM5102A-class line-level DAC is the current likely direction, but the exact D
 
 For mono equipment, stereo DAC outputs must be summed through resistors rather than tied directly together.
 
-## No SMB on the node
+## Production SMB rule
 
-The ESP32 should **not** mount the music share or build playlists. The central house-audio server owns the music library, queue, current position, and synchronized stream. Keeping SMB out of the endpoint substantially reduces firmware complexity.
+The finished ESP32 node should **not** need to mount the music share or build playlists. The central house-audio server is expected to own the music library, queue, current position, and synchronized stream.
+
+However, the **first hardware test intentionally does use SMB directly** because the house-audio server does not exist yet. That is a feasibility test, not the final architecture.
+
+## Phase 0: direct SMB feasibility test — FIRST TEST
+
+The very first test uses only:
+
+- one ESP32-S3
+- USB cable
+- the existing home Wi-Fi
+- the existing SMB music share
+- no DAC
+- no amplifier
+- no house-audio server
+
+The S3 should:
+
+1. connect to Wi-Fi
+2. connect/authenticate to the real SMB share
+3. list the target music directory
+4. open a real MP3 or FLAC file
+5. read the **entire file** sequentially in chunks
+6. discard the bytes after reading
+7. report the result over USB serial
+
+Useful serial diagnostics:
+
+- SMB connection/authentication state
+- directory-listing result
+- selected file/path
+- file size
+- total bytes read
+- elapsed time and average throughput
+- read errors/retries
+- optional CRC32/checksum
+- final PASS/FAIL
+
+This answers the immediate question: **can the ESP32-S3 reliably access the real SMB music library?**
+
+## Phase 1: synchronized-stream proof
+
+After Phase 0 passes, stand up the minimum house-audio/synchronization server and repurpose the same S3 for a serial-only renderer test.
+
+Acceptance criteria:
+
+- connects to Wi-Fi
+- discovers or reaches the house audio/sync server
+- completes stream/client negotiation
+- receives real stream packets continuously
+- reports packet/byte counts, timing/buffer state, failures, and reconnects over serial
+
+No DAC is required yet.
 
 ## Synchronization direction
 
 Use an existing Snapcast-compatible ESP32 client if it proves reliable on ESP32-S3. The goal is timestamped/buffered playback with clock correction, not several independent decoders attempting to seek to approximately the same position.
 
 The exact client/transport implementation remains open until tested on real hardware.
-
-## Phase 1: no DAC required
-
-The first proof can be done with only an ESP32-S3 and USB serial.
-
-Acceptance criteria for the first test:
-
-- connects to Wi-Fi
-- discovers or reaches the house audio/sync server
-- completes stream/client negotiation
-- receives real stream packets continuously
-- reports useful serial diagnostics such as connection state, packet/byte counts, timing/buffer state, and failures/reconnects
-
-This proves the difficult network/client path before buying or wiring audio hardware.
 
 ## Phase 2: one real audio node
 
@@ -86,7 +124,7 @@ Fixed per-node latency compensation can be added later if particular DAC/amplifi
 
 ## Hardware direction
 
-After the breadboard/prototype path is proven, design one generic PCB that can be installed repeatedly. The board should target multiple identical deployments rather than one-off wiring.
+After the prototype path is proven, design one generic PCB that can be installed repeatedly.
 
 Likely functions:
 
@@ -107,4 +145,4 @@ Do not freeze the PCB until the ESP32 client, DAC choice, power arrangement, and
 
 ## Status
 
-Waiting for the first spare ESP32-S3 to begin the serial-only stream-reception proof.
+Waiting for the first spare ESP32-S3 to begin **Phase 0: direct SMB access and full-file read over serial**.
