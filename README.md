@@ -28,7 +28,7 @@ The permanent house-audio server is the existing Raspberry Pi that already owns 
 Server-side music root:
 
 ```text
-/mnt/sharedrive/Shared Music
+/mnt/sharedrive/John/Shared Music
 ```
 
 That path is **server-side only**. The ESP32 does not browse or mount it.
@@ -142,4 +142,4 @@ Do not freeze the PCB until the ESP32 client, DAC choice, power arrangement, and
 
 ## Status
 
-Waiting for the first spare ESP32-S3 and the first permanent Pi MPD/Snapserver configuration to begin **Phase 1: serial-only Snapcast client reception proof**.
+Waiting for the permanent Pi MPD/Snapserver configuration to be completed before beginning **Phase 1: serial-only Snapcast client reception proof**. The first spare ESP32-S3 boards are now on hand.
