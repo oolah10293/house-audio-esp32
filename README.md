@@ -33,13 +33,13 @@ Server-side music root:
 
 That path is **server-side only**. The ESP32 does not browse or mount it.
 
-The planned production path is:
+The production path is:
 
 ```text
 Raspberry Pi local files -> MPD -> Snapserver -> ESP32-S3 Snapcast client -> I2S DAC -> amplifier/stereo
 ```
 
-The first ESP32 proof should use the same Snapserver instance intended to remain in production. No disposable proof server is planned.
+The first ESP32 proof used the same permanent Snapserver instance intended to remain in production. No disposable proof server was used.
 
 ## Hard power-off is intentional
 
@@ -55,7 +55,7 @@ Baseline direction:
 Wi-Fi -> ESP32-S3 -> Snapcast client -> I2S -> external DAC -> existing amplifier/stereo -> speaker
 ```
 
-A PCM5102A-class line-level DAC is the current likely direction, but the exact DAC is not yet locked. Existing amplifiers and analog volume controls should be preserved where practical.
+A PCM5102A-class line-level DAC is the current likely direction. Existing amplifiers and analog volume controls should be preserved where practical.
 
 For mono equipment, stereo DAC outputs must be summed through resistors rather than tied directly together.
 
@@ -65,47 +65,122 @@ The ESP32 node should **not** mount the music SMB share or build playlists in th
 
 A direct SMB-on-ESP32 test was considered early, before the architecture pivoted to Snapcast-style synchronized renderers. That test is now optional and low priority because it does not validate the production data path.
 
-## Phase 1: serial-only Snapcast client proof — FIRST TEST
+## Phase 1: serial-only Snapcast client proof — PASS
 
-The first meaningful hardware test should use one ESP32-S3 with USB serial and no DAC.
+Phase 1 has been completed successfully on a **Seeed Studio XIAO ESP32-S3** with no DAC or amplifier attached.
 
-Prerequisite: the Raspberry Pi has the permanent MPD -> Snapserver path running far enough to produce a real Snapcast stream.
+### Test firmware
 
-The S3 should:
+The working proof uses ESPHome with ESP-IDF and the external Snapcast component:
 
-1. connect to Wi-Fi
-2. discover or connect to the Pi's Snapserver
-3. complete Snapcast client/stream negotiation
-4. continuously receive real stream data
-5. report useful diagnostics over USB serial
+```text
+github://c-MM/esphome-snapclient@main
+```
 
-Useful diagnostics include:
+The test connected directly to the permanent Pi Snapserver at port 1704. The ESPHome component currently requires an explicit `hostname` value because leaving it omitted produces an invalid default-domain value in current ESPHome validation.
 
-- Wi-Fi connection state
-- server discovery / address
-- stream connection state
-- codec / stream parameters
-- packet and byte counters
-- buffer / timing state where available
-- reconnect attempts and failures
-- final PASS/FAIL indication for a sustained receive test
+Dummy I2S pins were configured so the decoder/player path could run without a physical DAC attached:
 
-This validates the part that matters for the finished nodes: **can this exact ESP32-S3 board operate reliably as a synchronized Snapcast renderer?**
+```text
+LRCLK: GPIO4
+BCLK:  GPIO5
+DOUT:  GPIO6
+```
+
+These pins are not yet a final production pin assignment.
+
+### What was proven
+
+The XIAO successfully:
+
+- booted the ESPHome/ESP-IDF firmware
+- joined the home Wi-Fi
+- connected to the permanent Snapserver
+- sent the Snapcast hello message
+- negotiated a FLAC stream at `48000:16:2`
+- filled a **1000 ms** latency buffer
+- changed mute state when playback state changed
+- stayed alive during sustained playback
+- continuously received and acknowledged the real audio stream
+
+Representative serial output:
+
+```text
+netconn connected
+netconn sent hello message
+Buffer length:  1000
+Latency:        0
+Mute:           0
+Setting volume: 100
+fLaC sampleformat: 48000:16:2
+latency buffer full
+```
+
+When a real song started, the client reported:
+
+```text
+Unmute
+```
+
+### Direct sustained-stream proof
+
+The original acceptance goal was not merely "TCP connected"; it was to prove that real audio payload continued flowing while the song played.
+
+That was verified from the permanent Snapserver host with:
+
+```bash
+watch -n 1 'ss -tin sport = :1704'
+```
+
+For the XIAO connection, over one 59-second sample:
+
+```text
+bytes_sent:    7,681,191 -> 13,974,143
+bytes_acked:   approximately tracked bytes_sent
+data_segs_out: 6,904 -> 12,247
+```
+
+Delta:
+
+```text
+6,292,952 bytes
+5,343 TCP data segments
+~0.85 Mbit/s sustained
+```
+
+That traffic volume, continuously acknowledged by the XIAO while the song played, proves actual stream reception rather than only handshake/control traffic.
+
+**Phase 1 no-DAC receive test: PASS.**
+
+### Antenna result
+
+The first test was accidentally performed with no external antenna connected. RSSI was roughly `-85 dBm` and the client showed Wi-Fi roam activity plus mute/unmute wobble.
+
+After installing the XIAO's 2.4 GHz antenna, signal improved to roughly:
+
+```text
+-37 dBm
+```
+
+The client then connected cleanly and filled the Snapcast latency buffer. The approximately **48 dB** improvement makes the antenna mandatory for production installations using this XIAO variant.
 
 ## Synchronization direction
 
-Prefer an existing ESP32 Snapcast-client implementation rather than inventing a synchronization protocol. The goal is timestamped/buffered playback with clock correction, not several independent decoders attempting to seek to approximately the same position.
+The renderer uses an existing ESP32 Snapcast-client implementation rather than inventing a synchronization protocol. The goal is timestamped/buffered playback with clock correction, not several independent decoders attempting to seek to approximately the same position.
 
-The exact ESP32 client implementation and configuration remain open until tested on the real S3 hardware.
+The ESP32-S3 has now been proven capable of receiving and decoding the production Snapcast stream. Audible synchronization still requires the DAC/audio-output phase and then a second node.
 
-## Phase 2: one real audio node
+## Phase 2: one real audio node — NEXT
 
-Add an I2S DAC and verify:
+Add an I2S line-level DAC, initially PCM5102A-class, and verify:
 
-- clean continuous audio
+- real clean continuous audio
+- correct channel handling / mono summing where required
 - automatic join to an already-running song
 - reconnect after Wi-Fi/server interruption
 - hard power-cycle recovery
+
+The immediate next hardware step is to connect a PCM5102A to the proven I2S path and hear the stream.
 
 ## Phase 3: synchronization proof
 
@@ -126,6 +201,7 @@ After the prototype path is proven, design one generic PCB that can be installed
 Likely functions:
 
 - ESP32-S3 module
+- required 2.4 GHz antenna arrangement
 - power regulation
 - I2S DAC / line-level output
 - headers or pads for stereo output
@@ -142,4 +218,4 @@ Do not freeze the PCB until the ESP32 client, DAC choice, power arrangement, and
 
 ## Status
 
-Waiting for the permanent Pi MPD/Snapserver configuration to be completed before beginning **Phase 1: serial-only Snapcast client reception proof**. The first spare ESP32-S3 boards are now on hand.
+**Phase 1 is complete.** The XIAO ESP32-S3 has been proven as a real Snapcast FLAC receiver on the permanent house-audio server, including sustained payload transfer. The next step is **PCM5102A/I2S audio output**.
