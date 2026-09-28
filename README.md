@@ -47,15 +47,15 @@ Many nodes will live inside existing radios/stereos whose original power switch 
 
 The ESP32 firmware must tolerate abrupt power removal with no shutdown sequence. Turning a radio off should make that output disappear immediately while the central house session continues elsewhere.
 
-## Planned audio path
+## Proven audio path
 
-Baseline direction:
+Production baseline:
 
 ```text
-Wi-Fi -> ESP32-S3 -> Snapcast client -> I2S -> external DAC -> existing amplifier/stereo -> speaker
+Wi-Fi -> ESP32-S3 -> Snapcast client -> I2S -> PCM5102A -> existing amplifier/stereo -> speaker
 ```
 
-A PCM5102A-class line-level DAC is the current likely direction. Existing amplifiers and analog volume controls should be preserved where practical.
+PCM5102A line-level output is now proven on two physical nodes. Existing amplifiers and analog volume controls are preserved where practical.
 
 For mono equipment, stereo DAC outputs must be summed through resistors rather than tied directly together.
 
@@ -261,7 +261,7 @@ A separate server-policy bug was found when both nodes had been off long enough 
 
 ### Two-node identity/configuration
 
-The second renderer uses the same proven firmware/hardware pattern as the first. Device identity must be unique, but the Snapcast/audio/I2S settings can remain the same.
+The second renderer uses the same proven firmware/hardware pattern as the first. The Snapcast/audio/I2S settings can remain the same. Each XIAO's hardware MAC gives Snapserver a distinct client id automatically; unique friendly names are recommended for human-readable diagnostics but are not required for synchronization.
 
 The proven I2S wiring on both nodes remains:
 
