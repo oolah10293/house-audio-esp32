@@ -82,6 +82,10 @@ int32_t get_diff_to_server(int64_t *tDiff);
 int32_t server_now(int64_t *sNow, int64_t *diff2Server);
 
 int32_t pcm_chunk_queue_msg_waiting(void);
+
+// Temporary Phase-2 diagnostics.
+void player_debug_get_counters(uint32_t *queued_chunks, uint32_t *queued_bytes,
+                               uint32_t *i2s_bytes, uint32_t *dropped_chunks);
 #ifdef __cplusplus
 }
 #endif
