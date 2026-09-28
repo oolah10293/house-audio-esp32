@@ -34,14 +34,6 @@
 #include "player.h"
 #include "snapcast.h"
 
-// Phase-2 diagnostic counter accessor implemented by the vendored
-// lightsnapcast/player.c. Declare it locally as well so this ESPHome component
-// does not depend on the managed-component header cache being refreshed first.
-extern "C" void player_debug_get_counters(uint32_t *queued_chunks,
-                                           uint32_t *queued_bytes,
-                                           uint32_t *i2s_bytes,
-                                           uint32_t *dropped_chunks);
-
 namespace esphome {
 namespace snapclient {
 
@@ -1421,31 +1413,6 @@ void http_get_task(void *pvParameters) {
 
                               if (pcmData) {
                                 insert_pcm_chunk(pcmData);
-                              }
-
-                              // Phase-2 diagnostic output through ESPHome's logger.
-                              // The low-level player uses ESP-IDF logging, which may be
-                              // suppressed by ESPHome after boot, so surface the same
-                              // counters here where snapclient INFO messages are known
-                              // to be visible.
-                              static int64_t debug_last_audio_log_us = 0;
-                              const int64_t debug_now_us = esp_timer_get_time();
-                              if ((debug_last_audio_log_us == 0) ||
-                                  ((debug_now_us - debug_last_audio_log_us) >= 1000000LL)) {
-                                uint32_t queued_chunks = 0;
-                                uint32_t queued_bytes = 0;
-                                uint32_t i2s_bytes = 0;
-                                uint32_t dropped_chunks = 0;
-                                player_debug_get_counters(&queued_chunks, &queued_bytes,
-                                                          &i2s_bytes, &dropped_chunks);
-                                ESP_LOGI(TAG,
-                                         "AUDIO DEBUG received_pcm_bytes=%lu queued_chunks=%lu queued_bytes=%lu i2s_bytes=%lu dropped=%lu",
-                                         (unsigned long) wire_chnk.size,
-                                         (unsigned long) queued_chunks,
-                                         (unsigned long) queued_bytes,
-                                         (unsigned long) i2s_bytes,
-                                         (unsigned long) dropped_chunks);
-                                debug_last_audio_log_us = debug_now_us;
                               }
 
                               pcmData = NULL;
