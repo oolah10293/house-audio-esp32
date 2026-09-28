@@ -34,6 +34,14 @@
 #include "player.h"
 #include "snapcast.h"
 
+// Phase-2 diagnostic counter accessor implemented by the vendored
+// lightsnapcast/player.c. Declare it locally as well so this ESPHome component
+// does not depend on the managed-component header cache being refreshed first.
+extern "C" void player_debug_get_counters(uint32_t *queued_chunks,
+                                           uint32_t *queued_bytes,
+                                           uint32_t *i2s_bytes,
+                                           uint32_t *dropped_chunks);
+
 namespace esphome {
 namespace snapclient {
 
