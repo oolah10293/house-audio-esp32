@@ -1160,6 +1160,14 @@ int32_t pcm_chunk_queue_msg_waiting(void) {
   return ret;
 }
 
+void player_debug_get_counters(uint32_t *queued_chunks, uint32_t *queued_bytes,
+                               uint32_t *i2s_bytes, uint32_t *dropped_chunks) {
+  if (queued_chunks) *queued_chunks = debug_pcm_chunks_queued;
+  if (queued_bytes) *queued_bytes = debug_pcm_bytes_queued;
+  if (i2s_bytes) *i2s_bytes = debug_i2s_bytes_written;
+  if (dropped_chunks) *dropped_chunks = debug_pcm_chunks_dropped;
+}
+
 /**
  *
  */
