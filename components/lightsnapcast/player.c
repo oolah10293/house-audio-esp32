@@ -3,6 +3,7 @@
  */
 
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <sys/time.h>
 
@@ -108,12 +109,12 @@ static void debug_audio_counters_maybe_log(void) {
   const int64_t now = esp_timer_get_time();
   if ((debug_last_log_us == 0) || ((now - debug_last_log_us) >= 1000000LL)) {
     debug_last_log_us = now;
-    ESP_LOGI(TAG,
-             "AUDIO DEBUG queued_chunks=%lu queued_bytes=%lu i2s_bytes=%lu dropped=%lu",
-             (unsigned long)debug_pcm_chunks_queued,
-             (unsigned long)debug_pcm_bytes_queued,
-             (unsigned long)debug_i2s_bytes_written,
-             (unsigned long)debug_pcm_chunks_dropped);
+    printf("AUDIO DEBUG queued_chunks=%lu queued_bytes=%lu i2s_bytes=%lu dropped=%lu\n",
+           (unsigned long)debug_pcm_chunks_queued,
+           (unsigned long)debug_pcm_bytes_queued,
+           (unsigned long)debug_i2s_bytes_written,
+           (unsigned long)debug_pcm_chunks_dropped);
+    fflush(stdout);
   }
 }
 
@@ -1160,13 +1161,6 @@ int32_t pcm_chunk_queue_msg_waiting(void) {
   return ret;
 }
 
-void player_debug_get_counters(uint32_t *queued_chunks, uint32_t *queued_bytes,
-                               uint32_t *i2s_bytes, uint32_t *dropped_chunks) {
-  if (queued_chunks) *queued_chunks = debug_pcm_chunks_queued;
-  if (queued_bytes) *queued_bytes = debug_pcm_bytes_queued;
-  if (i2s_bytes) *i2s_bytes = debug_i2s_bytes_written;
-  if (dropped_chunks) *dropped_chunks = debug_pcm_chunks_dropped;
-}
 
 /**
  *
