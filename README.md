@@ -168,7 +168,7 @@ The client then connected cleanly and filled the Snapcast latency buffer. The ap
 
 The renderer uses an existing ESP32 Snapcast-client implementation rather than inventing a synchronization protocol. The goal is timestamped/buffered playback with clock correction, not several independent decoders attempting to seek to approximately the same position.
 
-The ESP32-S3 has now been proven capable of receiving and decoding the production Snapcast stream. Audible synchronization still requires the DAC/audio-output phase and then a second node.
+The ESP32-S3 has now been proven capable of receiving and decoding the production Snapcast stream, producing clean analog audio through PCM5102A, and synchronizing audibly with a second independent node.
 
 ## Phase 2: one real audio node — AUDIBLE PLAYBACK PROVEN
 
@@ -191,24 +191,34 @@ DIN -> D5 (GPIO6)
 
 Snapserver was returned to its normal FLAC transport after a temporary PCM troubleshooting test, and the running server confirmed `codec=flac`.
 
-Remaining Phase 2 behavior checks:
+Phase 2 behavior now proven:
 
-- automatic join to an already-running song
-- reconnect after Wi-Fi/server interruption with real audio attached
-- hard power-cycle recovery with real audio attached
-- no objectionable pops/stutter during normal join/reconnect behavior
+- automatic join to an already-running song;
+- hard power-cycle recovery with real audio attached;
+- same-song rejoin after more than ten seconds powered off while the house session remained active;
+- about six seconds observed from plug-in to audible rejoin on current hardware.
 
-## Phase 3: synchronization proof
+Still under investigation:
 
-Add a second renderer and perform the real acceptance test:
+- occasional few-second audio dropouts affecting one renderer or the other during otherwise synchronized playback;
+- brief Wi-Fi/server interruption recovery has not yet been isolated from that dropout investigation;
+- no-objectionable-stutter acceptance remains open until the intermittent dropout cause is understood.
 
-1. music is already playing in one room
-2. power on another node
-3. second node joins the same song at the current point
-4. walk between rooms
-5. no objectionable echo or phasing is audible
+## Phase 3: synchronization proof — PASS
 
-Fixed per-node latency compensation can be added later if particular DAC/amplifier paths introduce repeatable offsets.
+A second XIAO ESP32-S3 + PCM5102A renderer was built as a functional clone of the first node.
+
+The real acceptance test passed:
+
+1. two independent renderers connected to the same Snapserver stream;
+2. both produced real analog audio at the same time;
+3. the nodes fed very different downstream amplifier/speaker systems;
+4. the outputs were **audibly synchronized**;
+5. no objectionable echo or phasing was heard during the test.
+
+This proves the synchronization architecture at the level that matters: two separate Wi-Fi clients, clocks, DACs, amplifiers, and speakers can render one coherent house session.
+
+Fixed per-node latency compensation remains available later if a particular DAC/amplifier path introduces a repeatable offset, but none was required for this proof.
 
 ## Hardware direction
 
@@ -234,4 +244,54 @@ Do not freeze the PCB until the ESP32 client, DAC choice, power arrangement, and
 
 ## Status
 
-**Phase 1 is complete. Phase 2 audible playback is proven.** The permanent path now works through the PCM5102A and produces real analog audio. The remaining Phase 2 work is behavior/recovery testing with the real audio hardware attached; after that, Phase 3 is the two-renderer audible synchronization test.
+**Phase 1 is complete. Phase 2 audible playback and hard-power rejoin behavior are proven. Phase 3 two-renderer audible synchronization is PASS.** Two XIAO ESP32-S3 + PCM5102A nodes now produce synchronized analog audio from the permanent house stream. The main renderer-side open item is reliability: diagnose the occasional few-second single-node dropout and confirm clean recovery once its cause is known.
+
+## Multi-node field findings
+
+### Appliance behavior
+
+The renderer now behaves like the intended old-radio appliance:
+
+- power the radio/node on and the server starts or resumes house music automatically;
+- if the house session is already playing, the renderer joins the current song instead of restarting it;
+- if the node is hard-powered off for more than ten seconds and then restored while the house session remains active, it rejoins that same song;
+- one observed power-on/rejoin reached audible output in about six seconds.
+
+A separate server-policy bug was found when both nodes had been off long enough for MPD to be paused. Both renderers returned healthy, but v0.5.0 intentionally left the paused session silent. `house-audio-server` v0.5.1 now treats passive-radio arrival as Play intent and resumes the retained queue. Both nodes started immediately after that server update. No ESP32 firmware change was required for that fix.
+
+### Two-node identity/configuration
+
+The second renderer uses the same proven firmware/hardware pattern as the first. Device identity must be unique, but the Snapcast/audio/I2S settings can remain the same.
+
+The proven I2S wiring on both nodes remains:
+
+```text
+LCK -> D3 / GPIO4
+BCK -> D4 / GPIO5
+DIN -> D5 / GPIO6
+```
+
+Snapserver distinguishes the nodes by their unique client/MAC identity.
+
+### Antennas
+
+Both active XIAO S3 renderers have their external 2.4 GHz antennas installed. The first node's earlier no-antenna test had shown roughly -85 dBm and obvious Wi-Fi instability; with the antenna attached it improved to roughly -37 dBm. The current intermittent dropout investigation therefore is **not** explained simply by a missing antenna.
+
+### Intermittent few-second dropout
+
+During two-node playback, an occasional short silence of a few seconds has been heard on one node or the other. The interruption is not necessarily frequent, and the system recovers automatically.
+
+No root cause has been assigned yet. Possibilities still include:
+
+- per-node Wi-Fi/TCP timing stall;
+- Snapcast client/decoder buffer behavior;
+- I2S/audio-output path;
+- another client-specific issue.
+
+The server-side v0.6.0 diagnostics recorder now captures Snapcast `lastSeen` stalls/recovery, connected/present/audible transitions, and global Snapserver stream-state changes. The next field occurrence should be correlated against `GET /diagnostics`. If those server-side signals remain clean during an audible dropout, the next instrumentation belongs inside the ESP32 decoder/buffer/I2S path.
+
+### Subjective audio-quality observation
+
+Using the same downstream amplifier, speakers, and analog cable, the PCM5102A/Snapcast source path was subjectively reported as noticeably cleaner than the generic Bluetooth receiver board it replaced, especially in high-frequency clarity/presence and low-level mix detail.
+
+This is an informal listening observation, not a lab measurement, but it is useful practical evidence that the tiny renderer is not merely convenient; its analog output quality is good enough to expose detail that the prior receiver path appeared to obscure.
