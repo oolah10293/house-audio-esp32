@@ -290,6 +290,8 @@ No root cause has been assigned yet. Possibilities still include:
 
 The server-side v0.6.0 diagnostics recorder now captures Snapcast `lastSeen` stalls/recovery, connected/present/audible transitions, and global Snapserver stream-state changes. The next field occurrence should be correlated against `GET /diagnostics`. If those server-side signals remain clean during an audible dropout, the next instrumentation belongs inside the ESP32 decoder/buffer/I2S path.
 
+Tracking: [Issue #3 — intermittent few-second single-node audio dropouts](https://github.com/oolah10293/house-audio-esp32/issues/3).
+
 ### Subjective audio-quality observation
 
 Using the same downstream amplifier, speakers, and analog cable, the PCM5102A/Snapcast source path was subjectively reported as noticeably cleaner than the generic Bluetooth receiver board it replaced, especially in high-frequency clarity/presence and low-level mix detail.
