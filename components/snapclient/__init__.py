@@ -60,7 +60,7 @@ async def to_code(config):
     # vendored in house-audio-esp32. Other IDF components stay pinned upstream.
     add_idf_component(
         name="lightsnapcast",
-        ref="main",
+        ref="1dcf06efb27b737a115899ae4f2dc5255eed1608",
         repo="https://github.com/oolah10293/house-audio-esp32.git",
         path="components/lightsnapcast",
     )
