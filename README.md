@@ -79,15 +79,15 @@ github://c-MM/esphome-snapclient@main
 
 The test connected directly to the permanent Pi Snapserver at port 1704. The ESPHome component currently requires an explicit `hostname` value because leaving it omitted produces an invalid default-domain value in current ESPHome validation.
 
-Dummy I2S pins were configured so the decoder/player path could run without a physical DAC attached:
+The proven I2S pin assignment is:
 
 ```text
-LRCLK: GPIO4
-BCLK:  GPIO5
-DOUT:  GPIO6
+PCM5102A LCK -> XIAO D3 = GPIO4
+PCM5102A BCK -> XIAO D4 = GPIO5
+PCM5102A DIN -> XIAO D5 = GPIO6
 ```
 
-These pins are not yet a final production pin assignment.
+Important: the XIAO's printed `D` labels are not the same numbers as the ESP32 GPIO numbers. The first audible test was initially wired one physical pin off because the firmware GPIO numbers were mistaken for the board's printed D-labels. Correcting the mapping above immediately produced audio.
 
 ### What was proven
 
@@ -170,17 +170,33 @@ The renderer uses an existing ESP32 Snapcast-client implementation rather than i
 
 The ESP32-S3 has now been proven capable of receiving and decoding the production Snapcast stream. Audible synchronization still requires the DAC/audio-output phase and then a second node.
 
-## Phase 2: one real audio node — NEXT
+## Phase 2: one real audio node — AUDIBLE PLAYBACK PROVEN
 
-Add an I2S line-level DAC, initially PCM5102A-class, and verify:
+A PCM5102A line-level DAC has now been connected to the XIAO and **real audible playback is working** from the permanent house-audio stack.
 
-- real clean continuous audio
-- correct channel handling / mono summing where required
+Proven path:
+
+```text
+Pi local music -> MPD -> Snapserver FLAC 48000:16:2
+-> Wi-Fi -> XIAO ESP32-S3 -> I2S -> PCM5102A -> analog audio
+```
+
+The working physical I2S mapping is:
+
+```text
+LCK -> D3 (GPIO4)
+BCK -> D4 (GPIO5)
+DIN -> D5 (GPIO6)
+```
+
+Snapserver was returned to its normal FLAC transport after a temporary PCM troubleshooting test, and the running server confirmed `codec=flac`.
+
+Remaining Phase 2 behavior checks:
+
 - automatic join to an already-running song
-- reconnect after Wi-Fi/server interruption
-- hard power-cycle recovery
-
-The immediate next hardware step is to connect a PCM5102A to the proven I2S path and hear the stream.
+- reconnect after Wi-Fi/server interruption with real audio attached
+- hard power-cycle recovery with real audio attached
+- no objectionable pops/stutter during normal join/reconnect behavior
 
 ## Phase 3: synchronization proof
 
@@ -218,4 +234,4 @@ Do not freeze the PCB until the ESP32 client, DAC choice, power arrangement, and
 
 ## Status
 
-**Phase 1 is complete.** The XIAO ESP32-S3 has been proven as a real Snapcast FLAC receiver on the permanent house-audio server, including sustained payload transfer. The next step is **PCM5102A/I2S audio output**.
+**Phase 1 is complete. Phase 2 audible playback is proven.** The permanent path now works through the PCM5102A and produces real analog audio. The remaining Phase 2 work is behavior/recovery testing with the real audio hardware attached; after that, Phase 3 is the two-renderer audible synchronization test.
