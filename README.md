@@ -323,4 +323,17 @@ This matters for renderer troubleshooting: a silent but healthy/present node is 
 - About **five minutes unplugged**: powering the radio on started a **different new song**.
 - The supplied `/session` response confirms server **0.6.2**, passive default **MP3s**, one present renderer, no pending stop, and `lastAction: pending_stop_cancelled_renderer_returned`.
 
-The snapshot verifies the early-return path. The long-absence listening result is consistent with fresh-session startup; a captured fresh-start action and a manually selected CD/Rap queue-to-default comparison were not supplied. Full details are in the server API docs. Server v0.7.0 now implements persisted MP3s/Rap selection via GET/POST `/settings` in source/tests (42 local tests pass; Pi installation pending). The Android selector and controller presence remain pending. Saving the default never interrupts a playing radio; it applies at the next fresh passive session. This is a server-release validation update, not a new ESP32 firmware build.
+The snapshot verifies the early-return path. The long-absence listening result is consistent with fresh-session startup; a captured fresh-start action and a manually selected CD/Rap queue-to-default comparison were not supplied. Full details are in the server API docs. Server v0.7.0 now implements persisted MP3s/Rap selection via GET/POST `/settings`, and it is installed and field-proven on the permanent Pi. Changing the default from MP3s to Rap did not interrupt the song already playing. After the final S3 stayed off for about ten minutes and the old session drained, the next S3 power-on started a fresh Rap session (first observed track: Ludacris — *Southern Hospitality*). The Android selector and controller presence remain pending. This is a server-release validation update, not a new ESP32 firmware build.
+
+
+### v0.7.0 passive-default field result
+
+A real S3 was used to validate the server's persisted passive-default behavior:
+
+- server default changed from `MP3s` to `Rap`;
+- current playback was unaffected;
+- S3 was powered off for roughly ten minutes so the prior session could complete;
+- on power-up, the S3 received a fresh Rap session;
+- first observed track: Ludacris — *Southern Hospitality*.
+
+No ESP32 firmware change was involved. This confirms that the renderer correctly follows the server-owned fresh-session/default-folder policy.
