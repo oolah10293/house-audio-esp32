@@ -312,7 +312,15 @@ The active S3 was:
 
 The actual state was upstream: MPD had finished the prior no-renderer session under `single oneshot` and landed **paused at 0.0 seconds on the next queued track**, leaving the Snapserver stream idle.
 
-`house-audio-server` v0.6.1 recognized that MPD boundary state and restored audible output by resuming the retained queue. That happened on the permanent Pi with no renderer firmware, wiring, or hardware changes. **The old-queue resume choice is now superseded by the authoritative session rule:** after completed drain the session is over; next passive power-on starts the configured MP3s/Rap default with a new random shuffle. Server v0.6.2 implements/tests that correction; its Pi field validation is pending. Return before the final song ends still preserves the existing session, and ordinary paused sessions remain resumable.
+`house-audio-server` v0.6.1 recognized that MPD boundary state and restored audible output by resuming the retained queue. That happened on the permanent Pi with no renderer firmware, wiring, or hardware changes. **The old-queue resume choice is now superseded by the authoritative session rule:** after completed drain the session is over; next passive power-on starts the configured MP3s/Rap default with a new random shuffle. Server v0.6.2 implements/tests that correction and is now running on the permanent Pi. Initial radio results are recorded below. Return before the final song ends still preserves the existing session, and ordinary paused sessions remain resumable.
 
 This matters for renderer troubleshooting: a silent but healthy/present node is not automatically a Wi-Fi, decoder, DAC, or I2S fault. Check the authoritative MPD/session state before changing ESP32 hardware.
 
+
+### v0.6.2 radio power-cycle results — 2026-09-29
+
+- About **10 seconds unplugged**: the radio returned to the **same song**.
+- About **five minutes unplugged**: powering the radio on started a **different new song**.
+- The supplied `/session` response confirms server **0.6.2**, passive default **MP3s**, one present renderer, no pending stop, and `lastAction: pending_stop_cancelled_renderer_returned`.
+
+The snapshot verifies the early-return path. The long-absence listening result is consistent with fresh-session startup; a captured fresh-start action and a manually selected CD/Rap queue-to-default comparison were not supplied. Full details are in the server API docs. The runtime MP3s/Rap selector and controller presence remain pending. This is a server-release validation update, not a new ESP32 firmware build.
