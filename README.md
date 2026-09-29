@@ -340,8 +340,16 @@ No ESP32 firmware change was involved. This confirms that the renderer correctly
 
 ### Server v0.8.0 controller policy — source/tests complete
 
-The next server milestone adds controller leases and muted-phone session handling, with 73 passing local tests. It is not yet installed/field-validated; v0.7.0 remains the latest confirmed Pi deployment.
+Server v0.8.0 adds controller leases and muted-phone session handling, with 73 passing tests and CI. It is installed on the permanent Pi: health passes, and a real S3 is correctly classified as one present/audible passive renderer with zero controllers. Physical controller pause/resume/expiry checks remain pending.
 
 A muted controller remaining after the last audible radio leaves holds an exact paused session. A radio returning resumes it. If that last controller leaves the automatic pause, the session ends without advancing; the next radio starts the configured default with a fresh shuffle. Leaving during active playback and returning before the final song ends still preserves the existing session.
 
 Background controllers renew every five seconds and expire after fifteen seconds without a heartbeat. Phone renderers retain their controlling-device classification across disconnects/service restarts and cannot masquerade as passive radios. No ESP32 firmware change is required for these server rules.
+
+### Server v0.8.1 restart boundary — source/tests complete
+
+A control-service restart now ends the previous listening session: stop/clear MPD and reset leftover playback modes before accepting new playback. A passive S3 already present or arriving later starts the currently saved MP3s/Rap default with a new shuffle. Controller reconnect alone stays idle. The saved default and phone-renderer ownership survive; old queue/progress and live leases do not.
+
+A radio returning before the final song ends during the same server process still continues the existing session unchanged. MPD/Snapserver connection recovery within that process does not trigger another startup reset. No ESP32 firmware change is required.
+
+85 server tests pass locally. Latest confirmed Pi deployment remains v0.8.0; v0.8.1 startup/restart and physical controller transitions await the combined Pi checkpoint described in the server README. Android HOUSE plus the already-approved Browser polish remains the next app integration slice.
