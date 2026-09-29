@@ -4,6 +4,8 @@ ESP32-S3 synchronized audio renderer firmware for the whole-house music system.
 
 These nodes are intended to hide inside vintage radios, stereos, powered speakers, or small standalone boxes and make them outputs for the single house playback session.
 
+**Companion release — 2026-09-29:** Android v0.4.0 (`9c89b24`, including heartbeat recovery) and server v0.8.2 (`9c98973`) have passed CI, and the Android APK is delivered. [Release record, APK/source downloads and checksums](https://github.com/oolah10293/smb-music-player/blob/main/docs/RELEASE_0.4.0.md). Update the Pi before the phone/S3 checkpoint. v0.8.1 remains the confirmed installed server; v0.8.2 installation and Android/S3 synchronization are pending. **No ESP32 firmware or wiring change is required.**
+
 ## Core production behavior
 
 In the finished system, an ESP32 node is a **renderer**, not an independent music player.
@@ -357,4 +359,4 @@ A radio returning before the final song ends during the same server process stil
 
 ### Android v0.4.0 / server v0.8.2 integration checkpoint
 
-The first Android HOUSE backend/receiver and approved Browser polish are implemented. Server v0.8.2 adds guarded queue sorting (90 local tests); its Pi installation and Android acceptance are pending. The next checkpoint compares phone/S3 synchronized audio and exercises muted-controller pause/resume, screen-off presence, and phone Quit while a radio keeps playing. Follow [HOUSE_VALIDATION.md](https://github.com/oolah10293/smb-music-player/blob/main/docs/HOUSE_VALIDATION.md). No ESP32 firmware or wiring change is part of this iteration, and no phone audio result is claimed yet.
+The first Android HOUSE backend/receiver and approved Browser polish are implemented and the final `9c89b24` APK is delivered. Its successful CI build includes three state tests, both native receiver ABIs and license assets; it also fixes restoration of HOUSE controls after a successful heartbeat renewal. Server v0.8.2 adds guarded queue sorting (90 tests and CI pass); its Pi installation and Android acceptance are pending. The next checkpoint compares phone/S3 synchronized audio and exercises muted-controller pause/resume, screen-off presence, heartbeat recovery, and phone Quit while a radio keeps playing. Follow [HOUSE_VALIDATION.md](https://github.com/oolah10293/smb-music-player/blob/main/docs/HOUSE_VALIDATION.md) using the exact builds in the [release record](https://github.com/oolah10293/smb-music-player/blob/main/docs/RELEASE_0.4.0.md). No ESP32 firmware or wiring change is part of this iteration, and no phone audio result is claimed yet. Live home/away handoff remains the following implementation slice.
