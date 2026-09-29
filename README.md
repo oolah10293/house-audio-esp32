@@ -297,3 +297,21 @@ Tracking: [Issue #3 — intermittent few-second single-node audio dropouts](http
 Using the same downstream amplifier, speakers, and analog cable, the PCM5102A/Snapcast source path was subjectively reported as noticeably cleaner than the generic Bluetooth receiver board it replaced, especially in high-frequency clarity/presence and low-level mix detail.
 
 This is an informal listening observation, not a lab measurement, but it is useful practical evidence that the tiny renderer is not merely convenient; its analog output quality is good enough to expose detail that the prior receiver path appeared to obscure.
+
+
+### v0.6.1 server-boundary proof
+
+A new "powered renderer but no music" event was captured with the server diagnostics and proved **not** to be an ESP32/DAC failure.
+
+The active S3 was:
+
+- connected to Snapserver;
+- fresh/present;
+- unmuted;
+- otherwise healthy.
+
+The actual state was upstream: MPD had finished the prior no-renderer session under `single oneshot` and landed **paused at 0.0 seconds on the next queued track**, leaving the Snapserver stream idle.
+
+`house-audio-server` v0.6.1 now recognizes that MPD boundary state and resumes the retained queue when a passive radio appears. After installing v0.6.1 with the S3 still powered, **music resumed automatically** with no renderer firmware, wiring, or hardware changes.
+
+This matters for renderer troubleshooting: a silent but healthy/present node is not automatically a Wi-Fi, decoder, DAC, or I2S fault. Check the authoritative MPD/session state before changing ESP32 hardware.
