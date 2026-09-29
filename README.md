@@ -323,7 +323,7 @@ This matters for renderer troubleshooting: a silent but healthy/present node is 
 - About **five minutes unplugged**: powering the radio on started a **different new song**.
 - The supplied `/session` response confirms server **0.6.2**, passive default **MP3s**, one present renderer, no pending stop, and `lastAction: pending_stop_cancelled_renderer_returned`.
 
-The snapshot verifies the early-return path. The long-absence listening result is consistent with fresh-session startup; a captured fresh-start action and a manually selected CD/Rap queue-to-default comparison were not supplied. Full details are in the server API docs. Server v0.7.0 now implements persisted MP3s/Rap selection via GET/POST `/settings`, and it is installed and field-proven on the permanent Pi. Changing the default from MP3s to Rap did not interrupt the song already playing. After the final S3 stayed off for about ten minutes and the old session drained, the next S3 power-on started a fresh Rap session (first observed track: Ludacris — *Southern Hospitality*). The Android selector and controller presence remain pending. This is a server-release validation update, not a new ESP32 firmware build.
+The snapshot verifies the early-return path. The long-absence listening result is consistent with fresh-session startup; a captured fresh-start action and a manually selected CD/Rap queue-to-default comparison were not supplied. Full details are in the server API docs. Server v0.7.0 now implements persisted MP3s/Rap selection via GET/POST `/settings`, and it is installed and field-proven on the permanent Pi. Changing the default from MP3s to Rap did not interrupt the song already playing. After the final S3 stayed off for about ten minutes and the old session drained, the next S3 power-on started a fresh Rap session (first observed track: Ludacris — *Southern Hospitality*). The Android selector remains pending; controller presence is implemented/tested in server v0.8.0, awaiting Pi validation. This is a server-release validation update, not a new ESP32 firmware build.
 
 
 ### v0.7.0 passive-default field result
@@ -337,3 +337,11 @@ A real S3 was used to validate the server's persisted passive-default behavior:
 - first observed track: Ludacris — *Southern Hospitality*.
 
 No ESP32 firmware change was involved. This confirms that the renderer correctly follows the server-owned fresh-session/default-folder policy.
+
+### Server v0.8.0 controller policy — source/tests complete
+
+The next server milestone adds controller leases and muted-phone session handling, with 73 passing local tests. It is not yet installed/field-validated; v0.7.0 remains the latest confirmed Pi deployment.
+
+A muted controller remaining after the last audible radio leaves holds an exact paused session. A radio returning resumes it. If that last controller leaves the automatic pause, the session ends without advancing; the next radio starts the configured default with a fresh shuffle. Leaving during active playback and returning before the final song ends still preserves the existing session.
+
+Background controllers renew every five seconds and expire after fifteen seconds without a heartbeat. Phone renderers retain their controlling-device classification across disconnects/service restarts and cannot masquerade as passive radios. No ESP32 firmware change is required for these server rules.
