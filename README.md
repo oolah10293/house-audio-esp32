@@ -346,10 +346,15 @@ A muted controller remaining after the last audible radio leaves holds an exact 
 
 Background controllers renew every five seconds and expire after fifteen seconds without a heartbeat. Phone renderers retain their controlling-device classification across disconnects/service restarts and cannot masquerade as passive radios. No ESP32 firmware change is required for these server rules.
 
-### Server v0.8.1 restart boundary — source/tests complete
+### Server v0.8.1 restart boundary — deployed, already-present-radio path proven
 
 A control-service restart now ends the previous listening session: stop/clear MPD and reset leftover playback modes before accepting new playback. A passive S3 already present or arriving later starts the currently saved MP3s/Rap default with a new shuffle. Controller reconnect alone stays idle. The saved default and phone-renderer ownership survive; old queue/progress and live leases do not.
 
 A radio returning before the final song ends during the same server process still continues the existing session unchanged. MPD/Snapserver connection recovery within that process does not trigger another startup reset. No ESP32 firmware change is required.
 
-85 server tests pass locally. Latest confirmed Pi deployment remains v0.8.0; v0.8.1 startup/restart and physical controller transitions await the combined Pi checkpoint described in the server README. Android HOUSE plus the already-approved Browser polish remains the next app integration slice.
+85 tests and CI passed for server v0.8.1, which is installed on the permanent Pi. The update restarted the service while one S3 stayed powered: startup reached ready, the saved Rap default survived, and a fresh randomized Rap session began with `lastAction: started_default_session`, one passive/audible renderer, zero controllers, and no auto-pause or pending drain. The all-radios-off restart variant and physical controller transitions remain pending.
+
+
+### Android v0.4.0 / server v0.8.2 integration checkpoint
+
+The first Android HOUSE backend/receiver and approved Browser polish are implemented. Server v0.8.2 adds guarded queue sorting (90 local tests); its Pi installation and Android acceptance are pending. The next checkpoint compares phone/S3 synchronized audio and exercises muted-controller pause/resume, screen-off presence, and phone Quit while a radio keeps playing. Follow [HOUSE_VALIDATION.md](https://github.com/oolah10293/smb-music-player/blob/main/docs/HOUSE_VALIDATION.md). No ESP32 firmware or wiring change is part of this iteration, and no phone audio result is claimed yet.
