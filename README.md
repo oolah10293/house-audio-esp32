@@ -252,7 +252,7 @@ Do not freeze the PCB until the ESP32 client, DAC choice, power arrangement, and
 
 The renderer now behaves like the intended old-radio appliance:
 
-- power the radio/node on and the server starts or resumes house music automatically;
+- power the radio/node on and the server starts a fresh randomized default after a completed session, or resumes/joins an unfinished active session;
 - if the house session is already playing, the renderer joins the current song instead of restarting it;
 - if the node is hard-powered off for more than ten seconds and then restored while the house session remains active, it rejoins that same song;
 - one observed power-on/rejoin reached audible output in about six seconds.
@@ -312,6 +312,7 @@ The active S3 was:
 
 The actual state was upstream: MPD had finished the prior no-renderer session under `single oneshot` and landed **paused at 0.0 seconds on the next queued track**, leaving the Snapserver stream idle.
 
-`house-audio-server` v0.6.1 now recognizes that MPD boundary state and resumes the retained queue when a passive radio appears. After installing v0.6.1 with the S3 still powered, **music resumed automatically** with no renderer firmware, wiring, or hardware changes.
+`house-audio-server` v0.6.1 recognized that MPD boundary state and restored audible output by resuming the retained queue. That happened on the permanent Pi with no renderer firmware, wiring, or hardware changes. **The old-queue resume choice is now superseded by the authoritative session rule:** after completed drain the session is over; next passive power-on starts the configured MP3s/Rap default with a new random shuffle. Server v0.6.2 implements/tests that correction; its Pi field validation is pending. Return before the final song ends still preserves the existing session, and ordinary paused sessions remain resumable.
 
 This matters for renderer troubleshooting: a silent but healthy/present node is not automatically a Wi-Fi, decoder, DAC, or I2S fault. Check the authoritative MPD/session state before changing ESP32 hardware.
+
