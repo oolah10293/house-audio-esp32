@@ -1,9 +1,8 @@
 # House Audio ESP32
 
-
-**2026-09-30 Android v0.4.2 field update:** Bluetooth connect/unmute and disconnect/mute pass. The phone can be brought into audible alignment with the S3 using **+400 ms** correction on the currently tested route; keep the Android correction adjustable until other output devices are tested. This does not change the existing S3-to-S3 synchronization PASS. Live Android home/away mode transitions still fail and are client-side work. The [3000 ms shared-buffer trial](https://github.com/oolah10293/house-audio-server/blob/main/docs/HOUSE_BUFFER_TRIAL.md) remains prepared but not deployed; no ESP32 firmware change is part of these results.
-
 ESP32-S3 synchronized audio renderer firmware for the whole-house music system.
+
+Android acceptance status belongs in the [smb-music-player](https://github.com/oolah10293/smb-music-player) repository; Pi/session policy belongs in [house-audio-server](https://github.com/oolah10293/house-audio-server). This README records renderer hardware/firmware behavior and renderer-specific field evidence.
 
 These nodes are intended to hide inside vintage radios, stereos, powered speakers, or small standalone boxes and make them outputs for the single house playback session.
 
@@ -303,7 +302,6 @@ Using the same downstream amplifier, speakers, and analog cable, the PCM5102A/Sn
 
 This is an informal listening observation, not a lab measurement, but it is useful practical evidence that the tiny renderer is not merely convenient; its analog output quality is good enough to expose detail that the prior receiver path appeared to obscure.
 
-
 ### v0.6.1 server-boundary proof
 
 A new "powered renderer but no music" event was captured with the server diagnostics and proved **not** to be an ESP32/DAC failure.
@@ -321,84 +319,6 @@ The actual state was upstream: MPD had finished the prior no-renderer session un
 
 This matters for renderer troubleshooting: a silent but healthy/present node is not automatically a Wi-Fi, decoder, DAC, or I2S fault. Check the authoritative MPD/session state before changing ESP32 hardware.
 
-
-### v0.6.2 radio power-cycle results — 2026-09-29
-
-- About **10 seconds unplugged**: the radio returned to the **same song**.
-- About **five minutes unplugged**: powering the radio on started a **different new song**.
-- The supplied `/session` response confirms server **0.6.2**, passive default **MP3s**, one present renderer, no pending stop, and `lastAction: pending_stop_cancelled_renderer_returned`.
-
-The snapshot verifies the early-return path. The long-absence listening result is consistent with fresh-session startup; a captured fresh-start action and a manually selected CD/Rap queue-to-default comparison were not supplied. Full details are in the server API docs. Server v0.7.0 now implements persisted MP3s/Rap selection via GET/POST `/settings`, and it is installed and field-proven on the permanent Pi. Changing the default from MP3s to Rap did not interrupt the song already playing. After the final S3 stayed off for about ten minutes and the old session drained, the next S3 power-on started a fresh Rap session (first observed track: Ludacris — *Southern Hospitality*). The Android selector remains pending; controller presence is implemented/tested in server v0.8.0, awaiting Pi validation. This is a server-release validation update, not a new ESP32 firmware build.
-
-
-### v0.7.0 passive-default field result
-
-A real S3 was used to validate the server's persisted passive-default behavior:
-
-- server default changed from `MP3s` to `Rap`;
-- current playback was unaffected;
-- S3 was powered off for roughly ten minutes so the prior session could complete;
-- on power-up, the S3 received a fresh Rap session;
-- first observed track: Ludacris — *Southern Hospitality*.
-
-No ESP32 firmware change was involved. This confirms that the renderer correctly follows the server-owned fresh-session/default-folder policy.
-
-### Server v0.8.0 controller policy — source/tests complete
-
-Server v0.8.0 adds controller leases and muted-phone session handling, with 73 passing tests and CI. It is installed on the permanent Pi: health passes, and a real S3 is correctly classified as one present/audible passive renderer with zero controllers. Physical controller pause/resume/expiry checks remain pending.
-
-A muted controller remaining after the last audible radio leaves holds an exact paused session. A radio returning resumes it. If that last controller leaves the automatic pause, the session ends without advancing; the next radio starts the configured default with a fresh shuffle. Leaving during active playback and returning before the final song ends still preserves the existing session.
-
-Background controllers renew every five seconds and expire after fifteen seconds without a heartbeat. Phone renderers retain their controlling-device classification across disconnects/service restarts and cannot masquerade as passive radios. No ESP32 firmware change is required for these server rules.
-
-### Server v0.8.1 restart boundary — deployed, already-present-radio path proven
-
-A control-service restart now ends the previous listening session: stop/clear MPD and reset leftover playback modes before accepting new playback. A passive S3 already present or arriving later starts the currently saved MP3s/Rap default with a new shuffle. Controller reconnect alone stays idle. The saved default and phone-renderer ownership survive; old queue/progress and live leases do not.
-
-A radio returning before the final song ends during the same server process still continues the existing session unchanged. MPD/Snapserver connection recovery within that process does not trigger another startup reset. No ESP32 firmware change is required.
-
-85 tests and CI passed for server v0.8.1, which is installed on the permanent Pi. The update restarted the service while one S3 stayed powered: startup reached ready, the saved Rap default survived, and a fresh randomized Rap session began with `lastAction: started_default_session`, one passive/audible renderer, zero controllers, and no auto-pause or pending drain. The all-radios-off restart variant and physical controller transitions remain pending.
-
-
-### Android v0.4.0 / server v0.8.2 integration checkpoint
-
-The first Android HOUSE backend/receiver and approved Browser polish are implemented and the final `9c89b24` APK is delivered. Server v0.8.2 is installed and healthy. The phone has already proven initial HOUSE state adoption with Tailscale off after MPD's LAN listener was enabled, but enabling Tailscale stops app updates while normal browser traffic can still reach the Pi. The next Android correction separates physical-home qualification from ordinary packet routing, applies the clarified conditional auto-unmute rule for playlist starts, and moves Mute/Unmute into the lower Media3 control strip. A muted phone stays muted when another house output was already audibly playing, but auto-unmutes when it initiates playback from an otherwise inaudible state. After that, resume the phone/S3 synchronization and muted-controller lifecycle checkpoint. No ESP32 firmware or wiring change is part of this iteration.
-
-
-### Android/Tailscale field finding — no ESP32 change
-
-The first Android v0.4.0 HOUSE test did **not** identify an ESP32/Snapcast-node defect.
-
-Observed:
-
-- the Pi/server and S3 continued operating;
-- Android HOUSE state adoption worked with Tailscale off;
-- enabling Tailscale stopped Android app updates;
-- the same phone could still reach the Pi HTTP health endpoint through normal browser traffic.
-
-The correction is entirely on the Android client networking side: physical non-VPN LAN presence determines HOUSE, while normal Android routing carries control/audio traffic. The S3 firmware remains unchanged for the next phone synchronization test.
-
-### Android v0.4.1 — corrections implemented, phone acceptance next
-
-The [v0.4.1 release record](https://github.com/oolah10293/smb-music-player/blob/main/docs/RELEASE_0.4.1.md) tracks build evidence and exact artifacts. Physical home-network routes now qualify HOUSE while normal Android routing carries control/audio traffic. Song/PLAY LIST preserves a muted phone if another output was already audible; pause/stop or otherwise inaudible starts auto-unmute it. Mute/Unmute is an icon inside the lower Media3 control strip.
-
-Keep the current S3 firmware and installed Pi v0.8.2. Next run [Tailscale-on launch/toggle, local output and phone/S3 acceptance](https://github.com/oolah10293/smb-music-player/blob/main/docs/HOUSE_VALIDATION.md); no Android audible synchronization or controller-lifecycle pass is claimed yet. Home/away same-song handoff remains subsequent Android work.
-
-
-### Android v0.4.1 phone/S3 field result
-
-The Android correction build now has partial real-device acceptance:
-
-- HOUSE works with Tailscale connected.
-- The phone's lower-strip output control is accepted.
-- A muted phone can change the shared playlist while an S3 is already audible without unmuting itself.
-- **Phone/S3 synchronization currently fails acceptance:** the phone was observed about **1 second behind** the S3.
-
-This does **not** invalidate the existing S3-to-S3 synchronization proof; that remains PASS. The one-second phone lag is a separate Android/Snapcast-renderer integration result and has not yet been diagnosed.
-
-A new Android Bluetooth-output policy was also approved: Bluetooth route connect/disconnect drives the phone's local HOUSE output state, while the S3s and Pi continue following the existing shared-session policy. No ESP32 firmware change is implied.
-
-
 ### HOUSE Country Buffer experiment
 
 The renderer path is approved to move from the current ~`1000 ms` Snapcast latency-buffer baseline toward a deliberately **multi-second HOUSE Country Buffer**.
@@ -415,7 +335,6 @@ Exact production depth is not locked. Start with several seconds and measure pow
 Deliberate transport changes should not be allowed to sit behind seconds of obsolete buffered audio by design. The server/client discontinuity or reset behavior must be verified so stale audio can be discarded/rebased as promptly as the Snapcast implementation permits.
 
 Recent observation: S3 dropouts appear more likely during heavier LAN/Internet traffic. The larger buffer is therefore a useful mitigation test, but that correlation is **not yet a root-cause finding**.
-
 
 ## Future specialized subwoofer node
 
