@@ -1,5 +1,8 @@
 # House Audio ESP32
 
+
+**2026-09-30 v0.4.1 feedback revisions:** [Android v0.4.2](https://github.com/oolah10293/smb-music-player/blob/main/docs/RELEASE_0.4.2.md) implements HOUSE Quit cleanup, prompt return-home recovery, Bluetooth output intent and measured sync controls. The v0.4.1 Tailscale/icon/muted-playlist passes are retained; phone/S3 timing and all new device behavior still need acceptance. The [3000 ms shared-buffer trial](https://github.com/oolah10293/house-audio-server/blob/main/docs/HOUSE_BUFFER_TRIAL.md) includes a preview-first config helper, backup/rollback and an explicit FIFO flush limitation. **Prepared, not deployed:** no live Pi or ESP32 firmware change was made. Server API/session behavior remains v0.8.2.
+
 ESP32-S3 synchronized audio renderer firmware for the whole-house music system.
 
 These nodes are intended to hide inside vintage radios, stereos, powered speakers, or small standalone boxes and make them outputs for the single house playback session.
