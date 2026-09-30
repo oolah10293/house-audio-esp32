@@ -337,8 +337,4 @@ Recent observation: S3 dropouts appear more likely during heavier LAN/Internet t
 
 ## Future specialized subwoofer node
 
-A dedicated synchronized **subwoofer renderer** is now a next-major-goal direction for this project.
-
-The node should remain a renderer of the same authoritative Snapcast HOUSE stream, not create an independent playback session. Likely design work includes low-pass/crossover handling, mono/sub output, level control, and node-specific timing/phase correction. Those details are **not locked yet**; prototype and measure before committing them to the generic radio-node hardware.
-
-This goal is separate from the current intermittent-dropout investigation and does not change the proven two-S3 synchronization result.
+Tracked in [Issue #4](https://github.com/oolah10293/house-audio-esp32/issues/4). The only README-level invariant is that it remains a renderer of the authoritative Snapcast HOUSE stream, not an independent playback session.
