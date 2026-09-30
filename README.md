@@ -4,7 +4,7 @@ ESP32-S3 synchronized audio renderer firmware for the whole-house music system.
 
 These nodes are intended to hide inside vintage radios, stereos, powered speakers, or small standalone boxes and make them outputs for the single house playback session.
 
-**Companion release/field status — 2026-09-29:** Android v0.4.0 (`9c89b24`, including heartbeat recovery) and server v0.8.2 (`9c98973`) passed CI. v0.8.2 is now installed on the Pi. After MPD's LAN listener was enabled, Android entered HOUSE with Tailscale off and adopted the current MPD track. Phone/S3 synchronization is still pending because the first phone pass exposed an Android/Tailscale transport-binding defect. **No ESP32 firmware or wiring change is required.**
+**Companion correction status — 2026-09-30:** [Android v0.4.1](https://github.com/oolah10293/smb-music-player/blob/main/docs/RELEASE_0.4.1.md) implements the first-phone-pass Tailscale/routing, conditional playlist auto-unmute and lower-strip mute-control fixes. Server v0.8.2 is installed and healthy. v0.4.0 proved HOUSE track adoption with Tailscale off; v0.4.1 Tailscale-on behavior and phone/S3 synchronization still need acceptance. **No ESP32 firmware or wiring change is required.**
 
 ## Core production behavior
 
@@ -374,3 +374,9 @@ Observed:
 - the same phone could still reach the Pi HTTP health endpoint through normal browser traffic.
 
 The correction is entirely on the Android client networking side: physical non-VPN LAN presence determines HOUSE, while normal Android routing carries control/audio traffic. The S3 firmware remains unchanged for the next phone synchronization test.
+
+### Android v0.4.1 — corrections implemented, phone acceptance next
+
+The [v0.4.1 release record](https://github.com/oolah10293/smb-music-player/blob/main/docs/RELEASE_0.4.1.md) tracks build evidence and exact artifacts. Physical home-network routes now qualify HOUSE while normal Android routing carries control/audio traffic. Song/PLAY LIST preserves a muted phone if another output was already audible; pause/stop or otherwise inaudible starts auto-unmute it. Mute/Unmute is an icon inside the lower Media3 control strip.
+
+Keep the current S3 firmware and installed Pi v0.8.2. Next run [Tailscale-on launch/toggle, local output and phone/S3 acceptance](https://github.com/oolah10293/smb-music-player/blob/main/docs/HOUSE_VALIDATION.md); no Android audible synchronization or controller-lifecycle pass is claimed yet. Home/away same-song handoff remains subsequent Android work.
