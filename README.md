@@ -6,7 +6,6 @@ Android acceptance status belongs in the [smb-music-player](https://github.com/o
 
 These nodes are intended to hide inside vintage radios, stereos, powered speakers, or small standalone boxes and make them outputs for the single house playback session.
 
-**Companion correction status — 2026-09-30:** [Android v0.4.1](https://github.com/oolah10293/smb-music-player/blob/main/docs/RELEASE_0.4.1.md) implements the first-phone-pass Tailscale/routing, conditional playlist auto-unmute and lower-strip mute-control fixes. Server v0.8.2 is installed and healthy. v0.4.0 proved HOUSE track adoption with Tailscale off; v0.4.1 Tailscale-on behavior and phone/S3 synchronization still need acceptance. **No ESP32 firmware or wiring change is required.**
 
 ## Core production behavior
 
