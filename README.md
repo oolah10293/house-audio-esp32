@@ -4,7 +4,7 @@ ESP32-S3 synchronized audio renderer firmware for the whole-house music system.
 
 These nodes are intended to hide inside vintage radios, stereos, powered speakers, or small standalone boxes and make them outputs for the single house playback session.
 
-**Companion release — 2026-09-29:** Android v0.4.0 (`9c89b24`, including heartbeat recovery) and server v0.8.2 (`9c98973`) have passed CI, and the Android APK is delivered. [Release record, APK/source downloads and checksums](https://github.com/oolah10293/smb-music-player/blob/main/docs/RELEASE_0.4.0.md). Update the Pi before the phone/S3 checkpoint. v0.8.1 remains the confirmed installed server; v0.8.2 installation and Android/S3 synchronization are pending. **No ESP32 firmware or wiring change is required.**
+**Companion release/field status — 2026-09-29:** Android v0.4.0 (`9c89b24`, including heartbeat recovery) and server v0.8.2 (`9c98973`) passed CI. v0.8.2 is now installed on the Pi. After MPD's LAN listener was enabled, Android entered HOUSE with Tailscale off and adopted the current MPD track. Phone/S3 synchronization is still pending because the first phone pass exposed an Android/Tailscale transport-binding defect. **No ESP32 firmware or wiring change is required.**
 
 ## Core production behavior
 
@@ -359,4 +359,18 @@ A radio returning before the final song ends during the same server process stil
 
 ### Android v0.4.0 / server v0.8.2 integration checkpoint
 
-The first Android HOUSE backend/receiver and approved Browser polish are implemented and the final `9c89b24` APK is delivered. Its successful CI build includes three state tests, both native receiver ABIs and license assets; it also fixes restoration of HOUSE controls after a successful heartbeat renewal. Server v0.8.2 adds guarded queue sorting (90 tests and CI pass); its Pi installation and Android acceptance are pending. The next checkpoint compares phone/S3 synchronized audio and exercises muted-controller pause/resume, screen-off presence, heartbeat recovery, and phone Quit while a radio keeps playing. Follow [HOUSE_VALIDATION.md](https://github.com/oolah10293/smb-music-player/blob/main/docs/HOUSE_VALIDATION.md) using the exact builds in the [release record](https://github.com/oolah10293/smb-music-player/blob/main/docs/RELEASE_0.4.0.md). No ESP32 firmware or wiring change is part of this iteration, and no phone audio result is claimed yet. Live home/away handoff remains the following implementation slice.
+The first Android HOUSE backend/receiver and approved Browser polish are implemented and the final `9c89b24` APK is delivered. Server v0.8.2 is installed and healthy. The phone has already proven initial HOUSE state adoption with Tailscale off after MPD's LAN listener was enabled, but enabling Tailscale stops app updates while normal browser traffic can still reach the Pi. The next Android correction separates physical-home qualification from ordinary packet routing, preserves phone mute when starting/replacing a playlist, and moves Mute/Unmute into the lower Media3 control strip. After that, resume the phone/S3 synchronization and muted-controller lifecycle checkpoint. No ESP32 firmware or wiring change is part of this iteration.
+
+
+### Android/Tailscale field finding — no ESP32 change
+
+The first Android v0.4.0 HOUSE test did **not** identify an ESP32/Snapcast-node defect.
+
+Observed:
+
+- the Pi/server and S3 continued operating;
+- Android HOUSE state adoption worked with Tailscale off;
+- enabling Tailscale stopped Android app updates;
+- the same phone could still reach the Pi HTTP health endpoint through normal browser traffic.
+
+The correction is entirely on the Android client networking side: physical non-VPN LAN presence determines HOUSE, while normal Android routing carries control/audio traffic. The S3 firmware remains unchanged for the next phone synchronization test.
