@@ -380,3 +380,17 @@ The correction is entirely on the Android client networking side: physical non-V
 The [v0.4.1 release record](https://github.com/oolah10293/smb-music-player/blob/main/docs/RELEASE_0.4.1.md) tracks build evidence and exact artifacts. Physical home-network routes now qualify HOUSE while normal Android routing carries control/audio traffic. Song/PLAY LIST preserves a muted phone if another output was already audible; pause/stop or otherwise inaudible starts auto-unmute it. Mute/Unmute is an icon inside the lower Media3 control strip.
 
 Keep the current S3 firmware and installed Pi v0.8.2. Next run [Tailscale-on launch/toggle, local output and phone/S3 acceptance](https://github.com/oolah10293/smb-music-player/blob/main/docs/HOUSE_VALIDATION.md); no Android audible synchronization or controller-lifecycle pass is claimed yet. Home/away same-song handoff remains subsequent Android work.
+
+
+### Android v0.4.1 phone/S3 field result
+
+The Android correction build now has partial real-device acceptance:
+
+- HOUSE works with Tailscale connected.
+- The phone's lower-strip output control is accepted.
+- A muted phone can change the shared playlist while an S3 is already audible without unmuting itself.
+- **Phone/S3 synchronization currently fails acceptance:** the phone was observed about **1 second behind** the S3.
+
+This does **not** invalidate the existing S3-to-S3 synchronization proof; that remains PASS. The one-second phone lag is a separate Android/Snapcast-renderer integration result and has not yet been diagnosed.
+
+A new Android Bluetooth-output policy was also approved: Bluetooth route connect/disconnect drives the phone's local HOUSE output state, while the S3s and Pi continue following the existing shared-session policy. No ESP32 firmware change is implied.
