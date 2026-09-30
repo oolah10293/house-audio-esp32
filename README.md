@@ -394,3 +394,21 @@ The Android correction build now has partial real-device acceptance:
 This does **not** invalidate the existing S3-to-S3 synchronization proof; that remains PASS. The one-second phone lag is a separate Android/Snapcast-renderer integration result and has not yet been diagnosed.
 
 A new Android Bluetooth-output policy was also approved: Bluetooth route connect/disconnect drives the phone's local HOUSE output state, while the S3s and Pi continue following the existing shared-session policy. No ESP32 firmware change is implied.
+
+
+### HOUSE Country Buffer experiment
+
+The renderer path is approved to move from the current ~`1000 ms` Snapcast latency-buffer baseline toward a deliberately **multi-second HOUSE Country Buffer**.
+
+Intent:
+
+- absorb short Wi-Fi/LAN contention without audible silence;
+- retain small Snapcast chunks (~20 ms) rather than increasing packet duration;
+- give client-specific latency compensation more headroom;
+- preserve synchronized playout across S3 and Android renderers.
+
+Exact production depth is not locked. Start with several seconds and measure power-on/rejoin delay, control-to-audible response and dropout frequency.
+
+Deliberate transport changes should not be allowed to sit behind seconds of obsolete buffered audio by design. The server/client discontinuity or reset behavior must be verified so stale audio can be discarded/rebased as promptly as the Snapcast implementation permits.
+
+Recent observation: S3 dropouts appear more likely during heavier LAN/Internet traffic. The larger buffer is therefore a useful mitigation test, but that correlation is **not yet a root-cause finding**.
