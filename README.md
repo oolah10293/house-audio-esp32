@@ -1,7 +1,7 @@
 # House Audio ESP32
 
 
-**2026-09-30 v0.4.1 feedback revisions:** [Android v0.4.2](https://github.com/oolah10293/smb-music-player/blob/main/docs/RELEASE_0.4.2.md) implements HOUSE Quit cleanup, prompt return-home recovery, Bluetooth output intent and measured sync controls. The v0.4.1 Tailscale/icon/muted-playlist passes are retained; phone/S3 timing and all new device behavior still need acceptance. The [3000 ms shared-buffer trial](https://github.com/oolah10293/house-audio-server/blob/main/docs/HOUSE_BUFFER_TRIAL.md) includes a preview-first config helper, backup/rollback and an explicit FIFO flush limitation. **Prepared, not deployed:** no live Pi or ESP32 firmware change was made. Server API/session behavior remains v0.8.2.
+**2026-09-30 Android v0.4.2 field update:** Bluetooth connect/unmute and disconnect/mute pass. The phone can be brought into audible alignment with the S3 using **+400 ms** correction on the currently tested route; keep the Android correction adjustable until other output devices are tested. This does not change the existing S3-to-S3 synchronization PASS. Live Android home/away mode transitions still fail and are client-side work. The [3000 ms shared-buffer trial](https://github.com/oolah10293/house-audio-server/blob/main/docs/HOUSE_BUFFER_TRIAL.md) remains prepared but not deployed; no ESP32 firmware change is part of these results.
 
 ESP32-S3 synchronized audio renderer firmware for the whole-house music system.
 
@@ -415,3 +415,12 @@ Exact production depth is not locked. Start with several seconds and measure pow
 Deliberate transport changes should not be allowed to sit behind seconds of obsolete buffered audio by design. The server/client discontinuity or reset behavior must be verified so stale audio can be discarded/rebased as promptly as the Snapcast implementation permits.
 
 Recent observation: S3 dropouts appear more likely during heavier LAN/Internet traffic. The larger buffer is therefore a useful mitigation test, but that correlation is **not yet a root-cause finding**.
+
+
+## Future specialized subwoofer node
+
+A dedicated synchronized **subwoofer renderer** is now a next-major-goal direction for this project.
+
+The node should remain a renderer of the same authoritative Snapcast HOUSE stream, not create an independent playback session. Likely design work includes low-pass/crossover handling, mono/sub output, level control, and node-specific timing/phase correction. Those details are **not locked yet**; prototype and measure before committing them to the generic radio-node hardware.
+
+This goal is separate from the current intermittent-dropout investigation and does not change the proven two-S3 synchronization result.
