@@ -22,6 +22,8 @@ On power-up it should:
 
 If music is already halfway through a song when a node turns on, the node joins at that point. It does not restart the song and it does not create its own queue.
 
+This includes a phone returning home while already playing SMB: when HOUSE was idle, the phone's live session must transfer to the Pi and become HOUSE. An S3 powered on after that return joins the transferred session, not a separately started default queue. Phone/server coordination must also cover S3 arrival during that handoff; see the authoritative [return-home rule](https://github.com/oolah10293/house-audio-server/blob/main/docs/SESSION_BEHAVIOR.md#returning-home). Implementation/field acceptance remains pending.
+
 Phone transport and phone sound are independent: a muted Android controller can pause/resume this shared stream while remaining muted itself. Follow [SESSION_BEHAVIOR §7](https://github.com/oolah10293/house-audio-server/blob/main/docs/SESSION_BEHAVIOR.md) for the phone's Bluetooth eligibility rule; it does not add a Bluetooth requirement to S3 renderers. The reported phone Pause/Resume regression is tracked in [Android HOUSE_VALIDATION.md](https://github.com/oolah10293/smb-music-player/blob/main/docs/HOUSE_VALIDATION.md), not as an ESP32 firmware fault.
 
 If the server is unavailable, the node should simply keep retrying. No phone interaction should be required.
