@@ -1,0 +1,181 @@
+# Integrated HOUSE Snapcast + Bose PS3-2-1 Series II subwoofer prototype.
+# See issue #4 for the electrical proof and current test status.
+#
+# Proven XIAO ESP32-S3 board-label mapping:
+#   D3 = GPIO4  -> PCM5102A LCK/LRCK
+#   D4 = GPIO5  -> PCM5102A BCK
+#   D5 = GPIO6  -> PCM5102A DIN
+#   D6 = GPIO43 -> Bose SmartSpeaker TX through 1k
+#   D7 = GPIO44 -> Bose SmartSpeaker RX through 1k
+#
+# Proven Bose connections for the first audio test:
+#   pin 7  -> XIAO GND
+#   pin 13 -> D6 through 1k AND D7 through 1k
+#   pin 4  -> pin 7 through 220 ohm (hardware unmute)
+#   pin 9  <- PCM5102A L OUT
+#   pin 8  <- PCM5102A GND
+#
+# Do not connect Bose pin 1 (~28.8 V measured) to the XIAO.
+
+substitutions:
+  name: house-audio-sub-test
+  friendly_name: House Audio Sub Test
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+
+  # Bring the Bose module out of standby after the ESPHome components are up.
+  # This is intentionally the already-proven command sequence before cleanup
+  # into a dedicated component/state machine.
+  on_boot:
+    priority: -100
+    then:
+      - delay: 3s
+      - lambda: |-
+          constexpr uint32_t BIT_US = 208;  // ~4800 baud
+
+          // bose_bus_tx is inverted open-drain:
+          //   turn_on()  = physical LOW (assert bus)
+          //   turn_off() = physical HIGH-Z/release
+          auto line_low = [&]() {
+            id(bose_bus_tx).turn_on();
+          };
+          auto line_release = [&]() {
+            id(bose_bus_tx).turn_off();
+          };
+
+          auto send_byte = [&](uint8_t value) {
+            // UART start bit.
+            line_low();
+            delayMicroseconds(BIT_US);
+
+            // 8 data bits, LSB first.
+            for (int bit = 0; bit < 8; bit++) {
+              if (value & (1 << bit))
+                line_release();
+              else
+                line_low();
+
+              delayMicroseconds(BIT_US);
+            }
+
+            // Stop bit.
+            line_release();
+            delayMicroseconds(BIT_US);
+          };
+
+          auto send_cmd = [&](const uint8_t *data, size_t len) {
+            for (size_t i = 0; i < len; i++)
+              send_byte(data[i]);
+
+            // Allow the module to ACK before the next command.
+            delay(30);
+          };
+
+          const uint8_t wake[]   = {0x01, 0x00, 0x00, 0x01};
+          const uint8_t analog[] = {0x0D, 0x00, 0x02, 0x0F};
+          const uint8_t stream[] = {0x0E, 0x00, 0x00, 0x00, 0x0E};
+          const uint8_t volume[] = {0x02, 0x00, 0x0C, 0x0E};
+
+          // Release bus before starting.
+          line_release();
+          delay(50);
+
+          ESP_LOGI("bose", "TX wake #1");
+          send_cmd(wake, sizeof(wake));
+
+          // Bose service sequence requires at least 100 ms before wake #2.
+          delay(150);
+
+          ESP_LOGI("bose", "TX wake #2");
+          send_cmd(wake, sizeof(wake));
+
+          ESP_LOGI("bose", "TX analog input select");
+          send_cmd(analog, sizeof(analog));
+
+          ESP_LOGI("bose", "TX stream setup");
+          send_cmd(stream, sizeof(stream));
+
+          ESP_LOGI("bose", "TX attenuation 12");
+          send_cmd(volume, sizeof(volume));
+
+          ESP_LOGI("bose", "Bose initialization sequence complete");
+
+esp32:
+  board: seeed_xiao_esp32s3
+  variant: esp32s3
+  flash_size: 8MB
+  cpu_frequency: 240MHz
+  framework:
+    type: esp-idf
+    version: recommended
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+logger:
+  level: DEBUG
+  hardware_uart: USB_SERIAL_JTAG
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  power_save_mode: none
+
+ota:
+  - platform: esphome
+
+network:
+  enable_ipv6: false
+
+external_components:
+  - source: github://c-MM/esphome-snapclient@main
+    components: [snapclient]
+    refresh: 0s
+
+# PCM5102A I2S output: XIAO D3/D4/D5.
+i2s_audio:
+  i2s_lrclk_pin: GPIO4
+  i2s_bclk_pin: GPIO5
+
+snapclient:
+  hostname: 192.168.1.12
+  port: 1704
+  name: ${friendly_name}
+  i2s_dout_pin: GPIO6
+
+# Bose SmartSpeaker bus TX: XIAO D6 = GPIO43.
+# Inverted is deliberate so the GPIO output component's default OFF state
+# releases the open-collector bus rather than pulling it low.
+output:
+  - platform: gpio
+    id: bose_bus_tx
+    pin:
+      number: GPIO43
+      inverted: true
+      mode:
+        output: true
+        open_drain: true
+
+# Bose SmartSpeaker bus RX: XIAO D7 = GPIO44.
+# This remains enabled during the prototype so the serial log shows both
+# our transmitted bytes and the module's trailing 0x00 ACKs.
+uart:
+  id: bose_bus_rx
+  rx_pin: GPIO44
+  baud_rate: 4800
+  data_bits: 8
+  parity: NONE
+  stop_bits: 1
+  rx_buffer_size: 256
+  rx_timeout: 1
+  debug:
+    direction: RX
+    dummy_receiver: true
+    after:
+      timeout: 20ms
+    sequence:
+      - lambda: |-
+          UARTDebug::log_hex(direction, bytes, ' ');
