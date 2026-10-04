@@ -1,4 +1,6 @@
-# Local HOUSE wrapper derived from c-MM/esphome-snapclient.\n# Keep the Snapclient core commit explicit so renderer builds are reproducible.\nfrom esphome import pins
+# Local HOUSE wrapper derived from c-MM/esphome-snapclient.
+# Keep the Snapclient core commit explicit so renderer builds are reproducible.
+from esphome import pins
 import esphome.codegen as cg
 from esphome.components import audio_dac
 from esphome.components.esp32 import add_idf_component, add_idf_sdkconfig_option
@@ -85,6 +87,12 @@ async def to_code(config):
         ref=SNAPCLIENT_GIT_VERSION,
         repo="https://github.com/CarlosDerSeher/snapclient.git",
         path="components/flac",
+    )
+    add_idf_component(
+        name="timefilter",
+        ref=SNAPCLIENT_GIT_VERSION,
+        repo="https://github.com/CarlosDerSeher/snapclient.git",
+        path="components/timefilter",
     )
     add_idf_component(
         name="dsp_processor",
