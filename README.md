@@ -78,11 +78,22 @@ Phase 1 has been completed successfully on a **Seeed Studio XIAO ESP32-S3** with
 
 ### Test firmware
 
-The working proof uses ESPHome with ESP-IDF and the external Snapcast component:
+The original working proof used ESPHome with ESP-IDF and the external Snapcast component:
 
 ```text
 github://c-MM/esphome-snapclient@main
 ```
+
+For the current reliability test, this repository now carries a local copy of that small ESPHome wrapper under `components/snapclient`. The local wrapper pins the Snapclient core to upstream commit `f13a7e437824ab7ef7bd4bfe482fcfeea8e74dbd` and includes the newer core's required `timefilter` component. ESPHome test YAML should therefore use:
+
+```yaml
+external_components:
+  - source: github://oolah10293/house-audio-esp32@main
+    components: [snapclient]
+    refresh: 0s
+```
+
+This wrapper update is under field test; it is not yet accepted as the dropout fix.
 
 The test connected directly to the permanent Pi Snapserver at port 1704. The ESPHome component currently requires an explicit `hostname` value because leaving it omitted produces an invalid default-domain value in current ESPHome validation.
 
