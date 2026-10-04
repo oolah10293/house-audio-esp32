@@ -84,16 +84,16 @@ The original working proof used ESPHome with ESP-IDF and the external Snapcast c
 github://c-MM/esphome-snapclient@main
 ```
 
-For the current reliability test, this repository now carries a local copy of that small ESPHome wrapper under `components/snapclient`. The local wrapper pins the Snapclient core to upstream commit `f13a7e437824ab7ef7bd4bfe482fcfeea8e74dbd` and includes the newer core's required `timefilter` component. ESPHome test YAML should therefore use:
+For the current reliability test, use the newer ESPHome snapclient implementation from upstream ESPHome PR #14389:
 
 ```yaml
 external_components:
-  - source: github://oolah10293/house-audio-esp32@main
+  - source: github://pr#14389
     components: [snapclient]
-    refresh: 0s
+    refresh: 24h
 ```
 
-This wrapper update is under field test; it is not yet accepted as the dropout fix.
+PR #14389 is maintained as the newer snapclient implementation for ESPHome 2026.3+ and is explicitly intended to use the newer Snapclient core/sync work. It is under field test here and is not yet accepted as the dropout fix.
 
 The test connected directly to the permanent Pi Snapserver at port 1704. The ESPHome component currently requires an explicit `hostname` value because leaving it omitted produces an invalid default-domain value in current ESPHome validation.
 
