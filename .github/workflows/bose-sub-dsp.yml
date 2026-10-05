@@ -1,0 +1,39 @@
+name: Validate Bose sub DSP
+on:
+  push:
+    branches: [bose-sub-crossover]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Native DSP and linker-hook checks
+        run: |
+          g++ -std=c++17 -O2 -Wall -Wextra -Werror -fsanitize=address,undefined tests/test_sub_filter.cpp -o /tmp/test_sub_filter
+          /tmp/test_sub_filter
+          g++ -std=c++17 -Os -flto -fno-lto -Wall -Wextra -Werror -ffunction-sections -fdata-sections -Wl,--gc-sections -Wl,--wrap=dsp_processor_worker -Itests/stubs tests/test_hook.cpp tests/mock_upstream.cpp components/house_sub_dsp/house_sub_dsp.cpp -o /tmp/test_hook
+          /tmp/test_hook
+      - name: Install matching ESPHome release
+        run: python -m pip install esphome==2026.4.0
+      - name: Compile integrated XIAO S3 configuration
+        run: esphome compile tests/compile_bose_sub.yaml
+      - name: Confirm processing hook survives final link
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          import subprocess
+          elf = next(Path('tests/.esphome').rglob('firmware.elf'))
+          nm = next(p for p in (Path.home()/'.platformio/packages').rglob('*-nm') if 'xtensa' in p.name and p.is_file())
+          symbols = subprocess.check_output([str(nm), str(elf)], text=True)
+          for name in ('__wrap_dsp_processor_worker', 'dsp_processor_worker'):
+              assert re.search(r'\b[Tt]\s+' + name + r'\s*$', symbols, re.M), name + ' missing from ELF'
+          print('PASS: both DSP wrapper and original worker retained in compiled firmware')
+          PY
