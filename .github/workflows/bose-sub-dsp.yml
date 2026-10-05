@@ -14,7 +14,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Native DSP and linker-hook checks
+      - name: Native DSP and PR14389 ABI checks
         run: |
           g++ -std=c++17 -O2 -Wall -Wextra -Werror -fsanitize=address,undefined tests/test_sub_filter.cpp -o /tmp/test_sub_filter
           /tmp/test_sub_filter
@@ -22,18 +22,9 @@ jobs:
           /tmp/test_hook
       - name: Install matching ESPHome release
         run: python -m pip install esphome==2026.4.0
-      - name: Compile integrated XIAO S3 configuration
-        run: esphome compile tests/compile_bose_sub.yaml
-      - name: Confirm processing hook survives final link
+      - name: Compile corrected PR14389 XIAO S3 configuration
         run: |
-          python - <<'PY'
-          from pathlib import Path
-          import re
-          import subprocess
-          elf = next(Path('tests/.esphome').rglob('firmware.elf'))
-          nm = next(p for p in (Path.home()/'.platformio/packages').rglob('*-nm') if 'xtensa' in p.name and p.is_file())
-          symbols = subprocess.check_output([str(nm), str(elf)], text=True)
-          for name in ('__wrap_dsp_processor_worker', 'dsp_processor_worker'):
-              assert re.search(r'\b[Tt]\s+' + name + r'\s*$', symbols, re.M), name + ' missing from ELF'
-          print('PASS: both DSP wrapper and original worker retained in compiled firmware')
-          PY
+          set -o pipefail
+          esphome compile tests/compile_bose_sub.yaml 2>&1 | tee /tmp/bose-build.log
+      - name: Verify newer baseline and real DSP call sites
+        run: python tests/check_pr14389_build.py

@@ -1,15 +1,17 @@
-# HOUSE subwoofer DSP
+# HOUSE subwoofer DSP — corrected PR #14389 integration
 
-Scope: mono `(L+R)/2`, then a fixed (YAML-time) 90 Hz fourth-order Linkwitz-Riley low-pass, duplicated into both PCM5102A output slots. No runtime controls, server/API changes, standby changes, or pin changes.
+This version supersedes the first add-on, which mistakenly retained c-MM/esphome-snapclient. It requires the newer ESPHome Snapclient PR #14389, pinned at luar123/esphome commit 4d3280bd35fdd970e628a22197f19ab0fded1a39. That wrapper selects luar123/snapclient core 774268009d1a6c3d1664fad533409a22e5a41e83, including its newer player/sync/timefilter work. The reliability baseline remains under field evaluation; this does not assert all dropouts are fixed.
 
-This add-on is specifically for `c-MM/esphome-snapclient` at `ce51e2fd861348698a6b4b7462fdda038cb942c9`, using its default stereo software-volume configuration and the HOUSE `48000:16:2` stream. Do not combine it with unrelated Snapclient implementations or arbitrary PCM formats. The upstream DSP API does not pass channel count or bit depth, so those remain explicit integration requirements, not runtime-detectable properties.
+Scope: (L+R)/2 mono, followed by a fixed 90 Hz fourth-order Linkwitz-Riley low-pass, duplicated into both PCM5102A slots. Existing Bose startup/attenuation, D3/D4/D5 I2S wiring, server and app remain unchanged. No automatic standby or runtime controls added.
 
-The upstream component depends on `CarlosDerSeher/snapclient` at `1adc5245012160c3c4eb312c962c7dc18b17231e`. Its decoder calls the C `dsp_processor_worker(char *, size_t, uint32_t)` entry point before inserting timestamped PCM chunks. We use GNU ld `--wrap` on that external call and call through to the original worker first, retaining existing software volume exactly once. Then we process in place, without changing chunk lengths, timestamps, transport buffers, or I2S configuration. `-fno-lto` is deliberate: cross-translation-unit inlining can otherwise bypass linker interposition.
+The PR is a media_player platform, not a top-level snapclient component. Its DSP entry point is int dsp_processor_worker(void *pcm_chunk, const void *settings), unlike the old three-argument raw-buffer ABI. The adapter uses the actual upstream headers and a compile-time signature assertion. ESPHome final validation rejects the old implementation and unreviewed core revisions.
 
-Two Q=1/sqrt(2) Butterworth biquads implement the LR4 response. Filter state persists across chunk boundaries; it resets on sample-rate changes and long delivery gaps. PCM buffer access is 32-bit, matching the upstream allocator contract. Output saturates rather than wrapping on transient overshoot. No analog outputs should be tied together.
+GNU ld --wrap interposes on this two-argument entry point and calls the original software-volume worker exactly once per fragment before filtering. There is no replacement decoder/player, no old c-MM dependency, no mDNS override, no extra audio queue and no timestamp changes. The native biquad/filter is the same tested arithmetic from the first addition. Coefficients for the normal 48 kHz stream are prepared at setup, and activity/error logging is deferred to the ESPHome loop rather than formatted in the audio task. Unsupported PCM formats are silenced rather than played unfiltered. The current supported data contract is 16-bit stereo, including the HOUSE 48000:16:2 stream.
 
-The new filter has frequency-dependent phase/group delay, and the Bose factory DSP remains downstream. Unchanged Snapcast timestamps do not guarantee unchanged acoustic phase alignment. Listening and hardware reliability still require field testing.
+The pinning and native ABI checks deliberately prevent another silent fallback to the wrong baseline. The original known-good firmware file on main is not changed.
 
-`PCM DSP ACTIVE: mono, 90.0 Hz LR4, 48000 Hz stream` is emitted from the actual processing hook, not just the startup/configuration path.
+Expected log once real PCM has been processed:
 
-Native checks performed before delivery: left-only/right-only equality, identical output slots, in-phase sum scaling, opposite-polarity cancellation, LR4 response at 44.1/48 kHz, chunk-boundary continuity, saturation, silence, reset, rate changes, invalid arguments, linker call-through, and single application of upstream volume. Hardware playback is not yet field-proven for this DSP addition.
+    PCM DSP ACTIVE: PR14389, mono, 90.0 Hz LR4, 48000 Hz stream
+
+Tests cover LR4 frequency response, channel equality, sum headroom, saturation, reset and chunk continuity, plus the new chunk/settings ABI, fragment handling, single volume application, timestamp preservation, invalid-format rejection, exact source/core pins, successful ESPHome compilation and final ELF call-site interposition. The new electrical low-pass adds frequency-dependent phase/group delay; unchanged Snapcast scheduling does not imply unchanged acoustic phase. Hardware listening remains required.

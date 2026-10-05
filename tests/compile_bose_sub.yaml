@@ -1,4 +1,5 @@
-# Compile-only copy of the user's Bose configuration. Credentials are placeholders.
+# Integration build: identical to the delivered YAML except Wi-Fi secrets
+# and the local checkout source for the DSP component under test.
 substitutions:
   name: bose-sub
   friendly_name: Bose Sub
@@ -56,6 +57,7 @@ esp32:
   framework:
     type: esp-idf
     version: recommended
+    log_level: INFO
 
 psram:
   mode: octal
@@ -66,9 +68,10 @@ logger:
   hardware_uart: USB_SERIAL_JTAG
 
 wifi:
-  ssid: "compile-only"
-  password: "unused-ci-password"
+  ssid: compile-only-network
+  password: compile-only-password
   power_save_mode: none
+  post_connect_roaming: false
 
 ota:
   - platform: esphome
@@ -77,7 +80,7 @@ network:
   enable_ipv6: false
 
 external_components:
-  - source: github://c-MM/esphome-snapclient@ce51e2fd861348698a6b4b7462fdda038cb942c9
+  - source: github://luar123/esphome@4d3280bd35fdd970e628a22197f19ab0fded1a39
     components: [snapclient]
     refresh: 0s
   - source:
@@ -92,11 +95,13 @@ i2s_audio:
   i2s_lrclk_pin: GPIO4
   i2s_bclk_pin: GPIO5
 
-snapclient:
-  hostname: 192.168.1.12
-  port: 1704
-  name: ${friendly_name}
-  i2s_dout_pin: GPIO6
+media_player:
+  - platform: snapclient
+    id: house_renderer
+    hostname: 192.168.1.12
+    port: 1704
+    name: ${friendly_name}
+    i2s_dout_pin: GPIO6
 
 output:
   - platform: gpio
