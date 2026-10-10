@@ -1,4 +1,4 @@
-"Verify the newer baseline, HA entities and final linker interposition."
+"Verify the exact shipped firmware, HA entities and final linker interposition."
 
 from pathlib import Path
 import re
@@ -7,7 +7,7 @@ import yaml
 
 
 class ESPHomeLoader(yaml.SafeLoader):
-    """Safe YAML loader that preserves ESPHome tags such as !lambda as data."""
+    """Safe YAML loader that preserves ESPHome tags such as !lambda/!secret."""
 
 
 def construct_esphome_tag(loader, node):
@@ -22,15 +22,22 @@ def construct_esphome_tag(loader, node):
 
 ESPHomeLoader.add_constructor(None, construct_esphome_tag)
 
-text = Path("tests/compile_bose_sub.yaml").read_text()
+firmware_path = Path("firmware/bose-subwoofer-prototype.yaml")
+text = firmware_path.read_text()
 config = yaml.load(text, Loader=ESPHomeLoader)
 
 assert "snapclient" not in config, "obsolete top-level snapclient block"
-assert config["media_player"][0]["platform"] == "snapclient"
+player = config["media_player"][0]
+assert player["platform"] == "snapclient"
+assert player["internal"] is True, "dead HA media-player controls must stay hidden"
 assert config["wifi"]["post_connect_roaming"] is False
 assert config["api"]["reboot_timeout"] == "0s"
 assert config["external_components"][0]["source"] == (
     "github://luar123/esphome@4d3280bd35fdd970e628a22197f19ab0fded1a39"
+)
+assert config["external_components"][1]["source"] == (
+    "github://oolah10293/house-audio-esp32@"
+    "6fee4c6b3e0fbc3c9bb61ebce5ed67fd5a871278"
 )
 assert "c-MM" not in text
 
@@ -73,7 +80,7 @@ for script in scripts.values():
 log = Path("/tmp/bose-build.log").read_text()
 assert "mdns version conflict" not in log, "legacy mDNS dependency override returned"
 
-elf = next(Path("tests/.esphome").rglob("firmware.elf"))
+elf = next(Path("firmware/.esphome").rglob("firmware.elf"))
 packages = Path.home() / ".platformio/packages"
 nm = next(p for p in packages.rglob("*-nm") if "xtensa" in p.name and p.is_file())
 objdump = nm.with_name(nm.name.removesuffix("nm") + "objdump")
@@ -97,6 +104,7 @@ assert wrapper_calls, "No upstream call site for __wrap_dsp_processor_worker"
 
 print("\n".join(wrapper_calls))
 print(
-    "PASS: PR14389 pinned; five HA tuning entities compiled; slider updates "
-    "debounced; no legacy mdns override; upstream PCM path calls DSP wrapper"
+    "PASS: exact shipped YAML compiled from immutable source pins; five useful "
+    "HA controls exposed; dead media-player controls hidden; slider updates "
+    "debounced; no legacy mdns override; PCM path calls DSP wrapper"
 )

@@ -28,6 +28,11 @@ The companion YAML exposes five native Home Assistant tuning entities:
 - **Sub Phase 180 Degrees:** polarity inversion.
 - **Sub Crossover Bypass:** bypasses the HP/LP filters only.
 
+The companion firmware marks the Snapclient `media_player` entity internal.
+That PR currently receives server volume but its HA-facing `set_volume_()` and
+`set_mute_()` write methods are stubs, so exposing it would create controls
+that appear functional but do not write back to Snapserver.
+
 All values restore after reboot. Slider actions use restart-mode scripts with a
 150 ms debounce so dragging a control applies only its final value instead of
 repeatedly resetting filter state or flooding the Bose bus.
@@ -45,6 +50,10 @@ Expected log after a control change and the next PCM chunk:
 
 Changing a crossover or phase setting resets filter state at a chunk boundary,
 so a small click during active playback is possible while tuning.
+
+CI compiles the exact shipped `firmware/bose-subwoofer-prototype.yaml` from
+its immutable external-component pins, using only temporary test Wi-Fi
+secrets.
 
 Native tests cover live LP/HP changes, LR4 response, mono channel equality,
 phase inversion, crossover bypass, clipping, chunk continuity, the PR #14389
