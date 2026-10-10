@@ -1,5 +1,3 @@
-# Integration build: identical to the delivered YAML except Wi-Fi secrets
-# and the local checkout source for the DSP component under test.
 substitutions:
   name: bose-sub
   friendly_name: Bose Sub
@@ -10,6 +8,12 @@ esphome:
   on_boot:
     priority: -100
     then:
+      - lambda: |-
+          id(sub_dsp).set_lowpass_hz(id(sub_lowpass).state);
+          id(sub_dsp).set_lowcut_hz(id(sub_lowcut).state);
+          id(sub_dsp).set_phase_inverted(id(sub_phase_invert).state);
+          id(sub_dsp).set_crossover_bypass(id(sub_crossover_bypass).state);
+          id(bose_ready) = false;
       - delay: 3s
       - lambda: |-
           constexpr uint32_t BIT_US = 208;
@@ -30,10 +34,14 @@ esphome:
             for (size_t i = 0; i < len; i++) send_byte(data[i]);
             delay(30);
           };
+          int attenuation = static_cast<int>(id(bose_attenuation).state + 0.5f);
+          if (attenuation < 0) attenuation = 0;
+          if (attenuation > 40) attenuation = 40;
+          const uint8_t att = static_cast<uint8_t>(attenuation);
           const uint8_t wake[]   = {0x01, 0x00, 0x00, 0x01};
           const uint8_t analog[] = {0x0D, 0x00, 0x02, 0x0F};
           const uint8_t stream[] = {0x0E, 0x00, 0x00, 0x00, 0x0E};
-          const uint8_t volume[] = {0x02, 0x00, 0x0C, 0x0E};
+          const uint8_t volume[] = {0x02, 0x00, att, static_cast<uint8_t>(0x02 ^ att)};
           line_release();
           delay(50);
           ESP_LOGI("bose", "TX wake #1");
@@ -45,8 +53,9 @@ esphome:
           send_cmd(analog, sizeof(analog));
           ESP_LOGI("bose", "TX stream setup");
           send_cmd(stream, sizeof(stream));
-          ESP_LOGI("bose", "TX attenuation 12");
+          ESP_LOGI("bose", "TX attenuation %u", att);
           send_cmd(volume, sizeof(volume));
+          id(bose_ready) = true;
           ESP_LOGI("bose", "Bose initialization sequence complete");
 
 esp32:
@@ -73,6 +82,9 @@ wifi:
   power_save_mode: none
   post_connect_roaming: false
 
+api:
+  reboot_timeout: 0s
+
 ota:
   - platform: esphome
 
@@ -89,7 +101,11 @@ external_components:
     components: [house_sub_dsp]
 
 house_sub_dsp:
+  id: sub_dsp
   lowpass_hz: 90.0
+  lowcut_hz: 0.0
+  phase_inverted: false
+  crossover_bypass: false
 
 i2s_audio:
   i2s_lrclk_pin: GPIO4
@@ -102,6 +118,119 @@ media_player:
     port: 1704
     name: ${friendly_name}
     i2s_dout_pin: GPIO6
+
+globals:
+  - id: bose_ready
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+
+script:
+  - id: bose_send_attenuation
+    mode: restart
+    parameters:
+      attenuation: int
+    then:
+      - lambda: |-
+          if (!id(bose_ready)) return;
+          if (attenuation < 0) attenuation = 0;
+          if (attenuation > 40) attenuation = 40;
+          constexpr uint32_t BIT_US = 208;
+          auto line_low = [&]() { id(bose_bus_tx).turn_on(); };
+          auto line_release = [&]() { id(bose_bus_tx).turn_off(); };
+          auto send_byte = [&](uint8_t value) {
+            line_low();
+            delayMicroseconds(BIT_US);
+            for (int bit = 0; bit < 8; bit++) {
+              if (value & (1 << bit)) line_release();
+              else line_low();
+              delayMicroseconds(BIT_US);
+            }
+            line_release();
+            delayMicroseconds(BIT_US);
+          };
+          const uint8_t att = static_cast<uint8_t>(attenuation);
+          const uint8_t command[] = {0x02, 0x00, att, static_cast<uint8_t>(0x02 ^ att)};
+          ESP_LOGI("bose", "TX attenuation %u", att);
+          for (uint8_t value : command) send_byte(value);
+          line_release();
+          delay(30);
+
+number:
+  - platform: template
+    id: bose_attenuation
+    name: Bose Attenuation
+    icon: mdi:volume-minus
+    min_value: 0
+    max_value: 40
+    step: 1
+    initial_value: 12
+    restore_value: true
+    optimistic: true
+    mode: slider
+    set_action:
+      - if:
+          condition:
+            lambda: 'return id(bose_ready);'
+          then:
+            - script.execute:
+                id: bose_send_attenuation
+                attenuation: !lambda 'return static_cast<int>(x);'
+
+  - platform: template
+    id: sub_lowpass
+    name: Low Pass
+    icon: mdi:filter
+    unit_of_measurement: Hz
+    min_value: 60
+    max_value: 160
+    step: 1
+    initial_value: 90
+    restore_value: true
+    optimistic: true
+    mode: slider
+    set_action:
+      - lambda: |-
+          id(sub_dsp).set_lowpass_hz(x);
+
+  - platform: template
+    id: sub_lowcut
+    name: Low Cut (0 = Off)
+    icon: mdi:filter
+    unit_of_measurement: Hz
+    min_value: 0
+    max_value: 50
+    step: 1
+    initial_value: 0
+    restore_value: true
+    optimistic: true
+    mode: slider
+    set_action:
+      - lambda: |-
+          id(sub_dsp).set_lowcut_hz(x);
+
+switch:
+  - platform: template
+    id: sub_phase_invert
+    name: Phase 180 Degrees
+    icon: mdi:sine-wave
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    turn_on_action:
+      - lambda: 'id(sub_dsp).set_phase_inverted(true);'
+    turn_off_action:
+      - lambda: 'id(sub_dsp).set_phase_inverted(false);'
+
+  - platform: template
+    id: sub_crossover_bypass
+    name: Crossover Bypass
+    icon: mdi:filter-off
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    turn_on_action:
+      - lambda: 'id(sub_dsp).set_crossover_bypass(true);'
+    turn_off_action:
+      - lambda: 'id(sub_dsp).set_crossover_bypass(false);'
 
 output:
   - platform: gpio

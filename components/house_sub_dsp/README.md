@@ -1,17 +1,22 @@
-# HOUSE subwoofer DSP — corrected PR #14389 integration
+# HOUSE subwoofer DSP — Home Assistant tuning controls
 
-This version supersedes the first add-on, which mistakenly retained c-MM/esphome-snapclient. It requires the newer ESPHome Snapclient PR #14389, pinned at luar123/esphome commit 4d3280bd35fdd970e628a22197f19ab0fded1a39. That wrapper selects luar123/snapclient core 774268009d1a6c3d1664fad533409a22e5a41e83, including its newer player/sync/timefilter work. The reliability baseline remains under field evaluation; this does not assert all dropouts are fixed.
+This branch keeps the accepted newer Snapclient PR #14389 baseline pinned at `luar123/esphome` commit `4d3280bd35fdd970e628a22197f19ab0fded1a39` and its Snapclient core `774268009d1a6c3d1664fad533409a22e5a41e83`.
 
-Scope: (L+R)/2 mono, followed by a fixed 90 Hz fourth-order Linkwitz-Riley low-pass, duplicated into both PCM5102A slots. Existing Bose startup/attenuation, D3/D4/D5 I2S wiring, server and app remain unchanged. No automatic standby or runtime controls added.
+The renderer remains mono `(L+R)/2` and now accepts runtime, no-recompile settings from ESPHome/Home Assistant:
 
-The PR is a media_player platform, not a top-level snapclient component. Its DSP entry point is int dsp_processor_worker(void *pcm_chunk, const void *settings), unlike the old three-argument raw-buffer ABI. The adapter uses the actual upstream headers and a compile-time signature assertion. ESPHome final validation rejects the old implementation and unreviewed core revisions.
+- fourth-order Linkwitz-Riley low-pass;
+- optional fourth-order Linkwitz-Riley low-cut/high-pass, with zero meaning off;
+- 0/180-degree polarity inversion;
+- crossover bypass while retaining mono summing and the selected phase.
 
-GNU ld --wrap interposes on this two-argument entry point and calls the original software-volume worker exactly once per fragment before filtering. There is no replacement decoder/player, no old c-MM dependency, no mDNS override, no extra audio queue and no timestamp changes. The native biquad/filter is the same tested arithmetic from the first addition. Coefficients for the normal 48 kHz stream are prepared at setup, and activity/error logging is deferred to the ESPHome loop rather than formatted in the audio task. Unsupported PCM formats are silenced rather than played unfiltered. The current supported data contract is 16-bit stereo, including the HOUSE 48000:16:2 stream.
+The settings are handed from the ESPHome main loop to the decoder task through atomics. Filter coefficients and state are changed only in the audio task at a chunk boundary. No transport buffers, timestamps, queue lengths, I2S pins, Snapcast synchronization code or Bose control-bus code are replaced. Snapcast software volume still runs exactly once per fragment before the node DSP.
 
-The pinning and native ABI checks deliberately prevent another silent fallback to the wrong baseline. The original known-good firmware file on main is not changed.
+The companion YAML exposes Bose attenuation, low-pass, low-cut, phase and crossover bypass as native ESPHome entities. Restore values are applied on boot, while `api.reboot_timeout: 0s` prevents loss of Home Assistant from rebooting the audio renderer.
 
-Expected log once real PCM has been processed:
+The Bose attenuation command remains the proven SmartSpeaker message `02 00 AA CC`, where `CC` is the XOR checksum and higher `AA` is quieter. The UI deliberately exposes the native 0–40 attenuation range rather than pretending it is a percentage.
 
-    PCM DSP ACTIVE: PR14389, mono, 90.0 Hz LR4, 48000 Hz stream
+Expected runtime log after a control change and the next PCM chunk:
 
-Tests cover LR4 frequency response, channel equality, sum headroom, saturation, reset and chunk continuity, plus the new chunk/settings ABI, fragment handling, single volume application, timestamp preservation, invalid-format rejection, exact source/core pins, successful ESPHome compilation and final ELF call-site interposition. The new electrical low-pass adds frequency-dependent phase/group delay; unchanged Snapcast scheduling does not imply unchanged acoustic phase. Hardware listening remains required.
+    PCM DSP ACTIVE: mono, LP 90.0 Hz LR4, low-cut OFF/0.0 Hz LR4, phase 0, crossover ACTIVE, 48000 Hz stream
+
+Native tests cover live LP/HP changes, LR4 response, mono channel equality, phase inversion, crossover bypass, clipping, chunk continuity, the PR #14389 ABI and single application of upstream software volume. The CI build also compiles the full XIAO S3 configuration with the Home Assistant entities and checks for the pinned newer baseline and absence of the legacy mDNS override.
