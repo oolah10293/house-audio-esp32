@@ -64,8 +64,20 @@ switches = {entry["id"]: entry for entry in config["switch"]}
 assert set(switches) == {
     "sub_phase_invert",
     "sub_crossover_bypass",
+    "bose_standby_test",
 }
 assert all(entry["entity_category"] == "config" for entry in switches.values())
+standby = switches["bose_standby_test"]
+assert standby["name"] == "Bose Standby (Test)"
+assert standby["restore_mode"] == "ALWAYS_OFF"
+assert standby["optimistic"] is True
+assert "{0x01, 0x00, 0x80, 0x81}" in standby["turn_on_action"][0]["lambda"]
+assert "id(bose_boot_complete)" in standby["turn_off_action"][0]["lambda"]
+assert "const uint8_t wake[]" in standby["turn_off_action"][0]["lambda"]
+assert "const uint8_t analog[]" in standby["turn_off_action"][0]["lambda"]
+assert "const uint8_t stream[]" in standby["turn_off_action"][0]["lambda"]
+assert "id(bose_ready) = true" in standby["turn_off_action"][0]["lambda"]
+assert "bose_boot_complete" in {entry["id"] for entry in config["globals"]}
 
 scripts = {entry["id"]: entry for entry in config["script"]}
 assert set(scripts) == {
@@ -104,7 +116,7 @@ assert wrapper_calls, "No upstream call site for __wrap_dsp_processor_worker"
 
 print("\n".join(wrapper_calls))
 print(
-    "PASS: exact shipped YAML compiled from immutable source pins; five useful "
-    "HA controls exposed; dead media-player controls hidden; slider updates "
-    "debounced; no legacy mdns override; PCM path calls DSP wrapper"
+    "PASS: exact shipped YAML compiled from immutable source pins; six HA "
+    "controls including test-only Bose standby/wake; dead media-player controls "
+    "hidden; slider updates debounced; no legacy mdns override; PCM path calls DSP wrapper"
 )
