@@ -103,6 +103,7 @@ esphome:
           send_cmd(volume, sizeof(volume));
 
           id(bose_ready) = true;
+          id(bose_boot_complete) = true;
           ESP_LOGI("bose", "Bose initialization sequence complete");
 
 esp32:
@@ -178,6 +179,11 @@ media_player:
 
 globals:
   - id: bose_ready
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  # Avoid a premature wake if ALWAYS_OFF restores during component setup.
+  - id: bose_boot_complete
     type: bool
     restore_value: no
     initial_value: 'false'
@@ -342,6 +348,115 @@ switch:
       - lambda: 'id(sub_dsp).set_crossover_bypass(true);'
     turn_off_action:
       - lambda: 'id(sub_dsp).set_crossover_bypass(false);'
+
+  # Manual test only, not connected to automated HOUSE node presence.
+  # If accepted, confirm the Bose keeps the XIAO supply rail powered.
+  - platform: template
+    id: bose_standby_test
+    name: Bose Standby (Test)
+    icon: mdi:power-sleep
+    entity_category: config
+    optimistic: true
+    restore_mode: ALWAYS_OFF
+    turn_on_action:
+      - lambda: |-
+          if (!id(bose_boot_complete)) return;
+          id(bose_ready) = false;
+          constexpr uint32_t BIT_US = 208;
+          auto line_low = [&]() { id(bose_bus_tx).turn_on(); };
+          auto line_release = [&]() { id(bose_bus_tx).turn_off(); };
+          auto send_byte = [&](uint8_t value) {
+            line_low();
+            delayMicroseconds(BIT_US);
+            for (int bit = 0; bit < 8; ++bit) {
+              if (value & (1 << bit)) line_release();
+              else line_low();
+              delayMicroseconds(BIT_US);
+            }
+            line_release();
+            delayMicroseconds(BIT_US);
+          };
+          // Unproven standby command on this particular Bose bass module.
+          const uint8_t command[] = {0x01, 0x00, 0x80, 0x81};
+          line_release();
+          delayMicroseconds(BIT_US);
+          ESP_LOGI("bose", "TX standby candidate 01 00 80 81 (unverified)");
+          for (uint8_t value : command) send_byte(value);
+          line_release();
+      - delay: 30ms
+    turn_off_action:
+      - lambda: |-
+          if (!id(bose_boot_complete)) return;
+          id(bose_ready) = false;
+          constexpr uint32_t BIT_US = 208;
+
+          auto line_low = [&]() {
+            id(bose_bus_tx).turn_on();
+          };
+          auto line_release = [&]() {
+            id(bose_bus_tx).turn_off();
+          };
+
+          auto send_byte = [&](uint8_t value) {
+            line_low();
+            delayMicroseconds(BIT_US);
+
+            for (int bit = 0; bit < 8; bit++) {
+              if (value & (1 << bit))
+                line_release();
+              else
+                line_low();
+
+              delayMicroseconds(BIT_US);
+            }
+
+            line_release();
+            delayMicroseconds(BIT_US);
+          };
+
+          auto send_cmd = [&](const uint8_t *data, size_t len) {
+            for (size_t i = 0; i < len; i++)
+              send_byte(data[i]);
+
+            delay(30);
+          };
+
+          int attenuation =
+              static_cast<int>(id(bose_attenuation).state + 0.5f);
+          if (attenuation < 0) attenuation = 0;
+          if (attenuation > 40) attenuation = 40;
+
+          const uint8_t att = static_cast<uint8_t>(attenuation);
+          const uint8_t wake[]   = {0x01, 0x00, 0x00, 0x01};
+          const uint8_t analog[] = {0x0D, 0x00, 0x02, 0x0F};
+          const uint8_t stream[] = {0x0E, 0x00, 0x00, 0x00, 0x0E};
+          const uint8_t volume[] = {
+            0x02, 0x00, att, static_cast<uint8_t>(0x02 ^ att)
+          };
+
+          line_release();
+          delay(50);
+
+          ESP_LOGI("bose", "TX wake #1");
+          send_cmd(wake, sizeof(wake));
+          delay(150);
+
+          ESP_LOGI("bose", "TX wake #2");
+          send_cmd(wake, sizeof(wake));
+
+          ESP_LOGI("bose", "TX analog input select");
+          send_cmd(analog, sizeof(analog));
+
+          ESP_LOGI("bose", "TX stream setup");
+          send_cmd(stream, sizeof(stream));
+
+          ESP_LOGI("bose", "TX attenuation %u", att);
+          send_cmd(volume, sizeof(volume));
+
+          id(bose_ready) = true;
+          id(bose_boot_complete) = true;
+          ESP_LOGI("bose", "Bose initialization sequence complete");
+
 
 output:
   - platform: gpio
