@@ -2,6 +2,15 @@
 
 ESP32-S3 synchronized audio renderer firmware for the whole-house music system.
 
+## Current Bose firmware step — v0.1.0
+
+The `bose-sub-auto-standby` branch adds Pi-driven automatic standby, Auto / Force
+standby / Force awake selection, HA/Pi status, bounded acknowledgment retries and
+one shared yielding wake sequence. Existing crossover/tuning and wiring remain.
+See [installation, source decision and acceptance checks](docs/BOSE_AUTO_STANDBY.md).
+This follows server v0.12.0; hardware acceptance is pending. The historical
+renderer notes below are not a replacement for the current Bose guide.
+
 Android acceptance status belongs in the [smb-music-player](https://github.com/oolah10293/smb-music-player) repository; Pi/session policy belongs in [house-audio-server](https://github.com/oolah10293/house-audio-server). This README records renderer hardware/firmware behavior and renderer-specific field evidence.
 
 These nodes are intended to hide inside vintage radios, stereos, powered speakers, or small standalone boxes and make them outputs for the single house playback session.
