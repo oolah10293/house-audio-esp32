@@ -35,11 +35,19 @@ assert config["api"]["reboot_timeout"] == "0s"
 assert config["external_components"][0]["source"] == (
     "github://luar123/esphome@4d3280bd35fdd970e628a22197f19ab0fded1a39"
 )
-assert config["external_components"][1]["source"] == (
-    "github://oolah10293/house-audio-esp32@"
-    "6fee4c6b3e0fbc3c9bb61ebce5ed67fd5a871278"
-)
-assert "c-MM" not in text
+source = config["external_components"][1]["source"]
+assert re.fullmatch(r"github://oolah10293/house-audio-esp32@[0-9a-f]{40}", source)
+assert set(config["external_components"][1]["components"]) == {"house_sub_dsp", "house_bose"}
+assert config["house_bose"]["tx_pin"]["number"] == "GPIO43"
+assert config["house_bose"]["tx_pin"]["inverted"] is True
+assert config["house_bose"]["tx_pin"]["mode"]["open_drain"] is True
+assert config["uart"]["rx_pin"] == "GPIO44"
+assert "debug" not in config["uart"]
+mode = config["select"][0]
+assert mode["options"] == ["Auto", "Force standby", "Force awake"]
+assert mode["restore_value"] is True and mode["initial_option"] == "Auto"
+assert "globals" not in config and "output" not in config
+assert "delay(" not in text and "delayMicroseconds" not in text
 
 numbers = {entry["id"]: entry for entry in config["number"]}
 assert set(numbers) == {
@@ -64,20 +72,8 @@ switches = {entry["id"]: entry for entry in config["switch"]}
 assert set(switches) == {
     "sub_phase_invert",
     "sub_crossover_bypass",
-    "bose_standby_test",
 }
 assert all(entry["entity_category"] == "config" for entry in switches.values())
-standby = switches["bose_standby_test"]
-assert standby["name"] == "Bose Standby (Test)"
-assert standby["restore_mode"] == "ALWAYS_OFF"
-assert standby["optimistic"] is True
-assert "{0x01, 0x00, 0x80, 0x81}" in standby["turn_on_action"][0]["lambda"]
-assert "id(bose_boot_complete)" in standby["turn_off_action"][0]["lambda"]
-assert "const uint8_t wake[]" in standby["turn_off_action"][0]["lambda"]
-assert "const uint8_t analog[]" in standby["turn_off_action"][0]["lambda"]
-assert "const uint8_t stream[]" in standby["turn_off_action"][0]["lambda"]
-assert "id(bose_ready) = true" in standby["turn_off_action"][0]["lambda"]
-assert "bose_boot_complete" in {entry["id"] for entry in config["globals"]}
 
 scripts = {entry["id"]: entry for entry in config["script"]}
 assert set(scripts) == {
@@ -116,7 +112,7 @@ assert wrapper_calls, "No upstream call site for __wrap_dsp_processor_worker"
 
 print("\n".join(wrapper_calls))
 print(
-    "PASS: exact shipped YAML compiled from immutable source pins; six HA "
-    "controls including test-only Bose standby/wake; dead media-player controls "
+    "PASS: exact shipped YAML compiled from immutable source pins; automatic Bose "
+    "mode/status and preserved tuning controls; dead media-player controls "
     "hidden; slider updates debounced; no legacy mdns override; PCM path calls DSP wrapper"
 )
