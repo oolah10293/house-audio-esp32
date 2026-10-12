@@ -33,7 +33,7 @@ esphome:
           id(sub_dsp).set_phase_inverted(id(sub_phase_invert).state);
           id(sub_dsp).set_crossover_bypass(id(sub_crossover_bypass).state);
           id(bose_control).set_attenuation(static_cast<int>(id(bose_attenuation).state + 0.5f));
-          id(bose_control).set_mode(id(bose_mode).state);
+          id(bose_control).set_mode(id(bose_mode).current_option().c_str());
 
 esp32:
   board: seeed_xiao_esp32s3
