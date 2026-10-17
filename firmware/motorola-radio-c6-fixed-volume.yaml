@@ -1,0 +1,53 @@
+# C6-only Motorola HOUSE renderer.
+# Uses the existing physical XIAO D3/D4/D5 -> PCM5102A wiring.
+# S3 nodes and the Bose node continue using their current firmware.
+esphome:
+  name: "house-audio-c6-3"
+  friendly_name: Motorola Radio
+  min_version: 2026.3.0
+
+esp32:
+  board: seeed_xiao_esp32c6
+  variant: esp32c6
+  flash_size: 4MB
+  cpu_frequency: 160MHz
+  framework:
+    type: esp-idf
+    version: recommended
+
+logger:
+  level: DEBUG
+  hardware_uart: USB_SERIAL_JTAG
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  power_save_mode: none
+
+ota:
+  - platform: esphome
+
+api:
+  reboot_timeout: 0s
+
+network:
+  enable_ipv6: false
+
+# Only this C6's Snapclient DSP implementation is patched.
+# All other Snapclient dependencies remain pinned to luar123's upstream source.
+external_components:
+  - source: github://oolah10293/house-audio-esp32@19e4679b1b8d96c5416f94836d54300e6f0a25d8
+    components: [snapclient]
+    refresh: 0s
+
+# XIAO C6 physical D3 = GPIO21, D4 = GPIO22, D5 = GPIO23.
+i2s_audio:
+  i2s_lrclk_pin: GPIO21
+  i2s_bclk_pin: GPIO22
+
+media_player:
+  - platform: snapclient
+    hostname: 192.168.1.12
+    port: 1704
+    name: Motorola Radio
+    i2s_dout_pin: GPIO23

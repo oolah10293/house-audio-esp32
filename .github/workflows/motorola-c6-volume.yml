@@ -1,0 +1,53 @@
+name: Verify Motorola C6 fixed-point audio firmware
+
+on:
+  push:
+    branches:
+      - fix/c6-fixed-point-volume
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compile-c6:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Fixed-point arithmetic tests
+        run: python -m unittest discover -s tests -p 'test_c6_fixed_point_volume.py' -v
+      - name: Install ESPHome
+        run: python -m pip install esphome==2026.4.0
+      - name: Supply compile-only Wi-Fi placeholder credentials
+        run: |
+          cat > firmware/secrets.yaml <<'EOF'
+          wifi_ssid: compile-only-network
+          wifi_password: compile-only-password
+          EOF
+      - name: Compile C6 Motorola firmware
+        shell: bash
+        run: |
+          set -o pipefail
+          esphome compile firmware/motorola-radio-c6-fixed-volume.yaml 2>&1 | tee /tmp/motorola-c6-build.log
+      - name: Verify C6 firmware used patched DSP source
+        run: |
+          python - <<'PY'
+          import pathlib
+          p = pathlib.Path("firmware/.esphome")
+          candidates = list(p.rglob("dsp_processor.c"))
+          print("Found DSP source files:", *map(str,candidates), sep="\n")
+          patched = [p for p in candidates if "dynamic_vol_q16" in p.read_text(errors="ignore")]
+          assert patched, "Patched C6 DSP was not used in build"
+          print("Confirmed fixed-point patched DSP source:", patched[0])
+          PY
+      - name: Retain compile log only (no fake-Wi-Fi binary distributed)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: motorola-c6-build-log
+          path: /tmp/motorola-c6-build.log
+          if-no-files-found: ignore
