@@ -68,6 +68,8 @@ void HouseSubDSP::apply_requested_settings_() {
 }
 
 void HouseSubDSP::setup() {
+  // A cold-boot-muted Rio must not leak its first 10 ms before the fade settles.
+  output_gain_ = requested_output_muted_.load(std::memory_order_acquire) ? 0.0f : 1.0f;
   apply_requested_settings_();
   filter_.prepare(48000);
   filter_.reset();
