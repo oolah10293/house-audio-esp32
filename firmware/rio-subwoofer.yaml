@@ -1,0 +1,196 @@
+# Rio 4-ohm subwoofer - XIAO ESP32-S3 + PCM5102A + TPA3118 mono amp.
+# The TPA3118 has no ESP32 mute/enable wire. "Follow" therefore mutes
+# decoded PCM in DSP, NOT the amplifier's 20 V supply or power consumption.
+# Existing identity preserved across replacement S3:
+#   Snapcast ID / Wi-Fi MAC: 44:BD:8D:EC:51:80.
+#
+# Pin mapping: PCM5102A LCK -> GPIO4, BCK -> GPIO5, DIN -> GPIO6.
+# DAC L OUT -> amplifier INPUT+; DAC analog GND -> amplifier INPUT-.
+# TPA3118 speaker OUT +/- are both driven; neither is ground.
+
+substitutions:
+  device_name: house-audio-rio-sub
+  device_friendly_name: Rio Subwoofer
+
+esphome:
+  name: ${device_name}
+  friendly_name: ${device_friendly_name}
+  min_version: 2026.4.0
+  includes:
+    - <esp_mac.h>
+  on_boot:
+    - priority: 900
+      then:
+        - lambda: |-
+            const uint8_t old_mac[6] = {0x44, 0xBD, 0x8D, 0xEC, 0x51, 0x80};
+            const esp_err_t result = esp_base_mac_addr_set(old_mac);
+            if (result != ESP_OK) {
+              ESP_LOGE("rio_mac", "MAC override failed: %d", result);
+            }
+    - priority: -100
+      then:
+        - lambda: |-
+            id(sub_dsp).set_lowpass_hz(id(sub_lowpass).state);
+            id(sub_dsp).set_lowcut_hz(id(sub_lowcut).state);
+            id(sub_dsp).set_phase_inverted(id(sub_phase_invert).state);
+            id(sub_dsp).set_crossover_bypass(id(sub_crossover_bypass).state);
+
+esp32:
+  board: seeed_xiao_esp32s3
+  variant: esp32s3
+  flash_size: 8MB
+  cpu_frequency: 240MHz
+  framework:
+    type: esp-idf
+    version: recommended
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+logger:
+  level: DEBUG
+  hardware_uart: USB_SERIAL_JTAG
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  post_connect_roaming: false
+  power_save_mode: none
+
+ota:
+  - platform: esphome
+
+api:
+  reboot_timeout: 0s
+
+network:
+  enable_ipv6: false
+
+external_components:
+  - source:
+      type: git
+      url: https://github.com/oolah10293/esphome
+      ref: fix-snapclient-log-tag
+    components: [snapclient]
+    refresh: 1d
+
+  # Working branch: keep pinned until reviewed/merged.
+  - source:
+      type: git
+      url: https://github.com/oolah10293/house-audio-esp32
+      ref: feature/rio-audio-follow
+    components: [house_sub_dsp, house_rio]
+    refresh: 0s
+
+# Fade the output silently from power-up until the Pi confirms that an
+# assigned main speaker is present. The 20 V amplifier stays powered.
+house_sub_dsp:
+  id: sub_dsp
+  lowpass_hz: 80.0
+  lowcut_hz: 0.0
+  phase_inverted: false
+  crossover_bypass: false
+  start_muted: true
+
+house_rio:
+  dsp_id: sub_dsp
+  server_url: http://192.168.1.12:8787
+  status:
+    name: Rio Audio Follow Status
+    icon: mdi:speaker-wireless
+
+i2s_audio:
+  i2s_lrclk_pin: GPIO4
+  i2s_bclk_pin: GPIO5
+
+media_player:
+  - platform: snapclient
+    id: house_renderer
+    hostname: 192.168.1.12
+    port: 1704
+    name: ${device_friendly_name}
+    i2s_dout_pin: GPIO6
+    # HA volume/mute write methods are not implemented by this Snapclient.
+    internal: true
+
+script:
+  - id: sub_apply_lowpass
+    mode: restart
+    parameters:
+      cutoff_hz: float
+    then:
+      - delay: 150ms
+      - lambda: |-
+          id(sub_dsp).set_lowpass_hz(cutoff_hz);
+
+  - id: sub_apply_lowcut
+    mode: restart
+    parameters:
+      cutoff_hz: float
+    then:
+      - delay: 150ms
+      - lambda: |-
+          id(sub_dsp).set_lowcut_hz(cutoff_hz);
+
+number:
+  - platform: template
+    id: sub_lowpass
+    name: Sub Low-Pass
+    icon: mdi:filter
+    entity_category: config
+    unit_of_measurement: Hz
+    min_value: 60
+    max_value: 160
+    step: 1
+    initial_value: 80
+    restore_value: true
+    optimistic: true
+    mode: slider
+    set_action:
+      - script.execute:
+          id: sub_apply_lowpass
+          cutoff_hz: !lambda 'return x;'
+
+  - platform: template
+    id: sub_lowcut
+    name: Sub Low-Cut (0 = Off)
+    icon: mdi:filter-outline
+    entity_category: config
+    unit_of_measurement: Hz
+    min_value: 0
+    max_value: 80
+    step: 5
+    initial_value: 0
+    restore_value: true
+    optimistic: true
+    mode: slider
+    set_action:
+      - script.execute:
+          id: sub_apply_lowcut
+          cutoff_hz: !lambda 'return x;'
+
+switch:
+  - platform: template
+    id: sub_phase_invert
+    name: Sub Phase 180 Degrees
+    icon: mdi:sine-wave
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    turn_on_action:
+      - lambda: 'id(sub_dsp).set_phase_inverted(true);'
+    turn_off_action:
+      - lambda: 'id(sub_dsp).set_phase_inverted(false);'
+
+  - platform: template
+    id: sub_crossover_bypass
+    name: Sub Crossover Bypass
+    icon: mdi:filter-off
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    turn_on_action:
+      - lambda: 'id(sub_dsp).set_crossover_bypass(true);'
+    turn_off_action:
+      - lambda: 'id(sub_dsp).set_crossover_bypass(false);'
