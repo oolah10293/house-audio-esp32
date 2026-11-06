@@ -21,6 +21,14 @@ int main(){
   dsp.set_phase_inverted(false);dsp.set_crossover_bypass(true);std::fill(frames.begin(),frames.end(),pack(10000,0));assert(dsp_processor_worker(&c,&s)==0);assert(static_cast<int16_t>(frames.back())==2500);
   dsp.set_crossover_bypass(false);dsp.set_lowcut_hz(30);dsp.set_lowpass_hz(120);std::fill(frames.begin(),frames.end(),pack(10000,10000));assert(dsp_processor_worker(&c,&s)==0);
   for(auto x:frames)assert(static_cast<uint16_t>(x)==static_cast<uint16_t>(x>>16));
+  dsp.set_output_muted(true);
+  std::fill(frames.begin(),frames.end(),pack(10000,10000));
+  assert(dsp_processor_worker(&c,&s)==0);
+  for (size_t i=1000;i<frames.size();++i) assert(frames[i]==0);
+  dsp.set_output_muted(false);
+  std::fill(frames.begin(),frames.end(),pack(10000,10000));
+  assert(dsp_processor_worker(&c,&s)==0);
+  assert(frames.back()!=0);
   s.bits=24;int calls=upstream_calls;assert(dsp_processor_worker(&c,&s)==-1);assert(upstream_calls==calls);for(auto x:frames)assert(x==0);s.bits=16;
   upstream_result=-7;std::fill(frames.begin(),frames.end(),pack(10000,10000));assert(dsp_processor_worker(&c,&s)==-7);for(auto x:frames)assert(x==0);upstream_result=0;
   std::puts("PASS: runtime controls, PR14389 ABI, mono slots, single volume and fail-closed guards");
