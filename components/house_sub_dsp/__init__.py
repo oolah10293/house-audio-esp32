@@ -9,6 +9,7 @@ CONF_LOWPASS_HZ = "lowpass_hz"
 CONF_LOWCUT_HZ = "lowcut_hz"
 CONF_PHASE_INVERTED = "phase_inverted"
 CONF_CROSSOVER_BYPASS = "crossover_bypass"
+CONF_START_MUTED = "start_muted"
 EXPECTED_CORE = "774268009d1a6c3d1664fad533409a22e5a41e83"
 EXPECTED_REPO = "https://github.com/luar123/snapclient.git"
 
@@ -30,6 +31,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_LOWCUT_HZ, default=0.0): cv.float_range(min=0.0, max=80.0),
             cv.Optional(CONF_PHASE_INVERTED, default=False): cv.boolean,
             cv.Optional(CONF_CROSSOVER_BYPASS, default=False): cv.boolean,
+            cv.Optional(CONF_START_MUTED, default=False): cv.boolean,
         }
     ).extend(cv.COMPONENT_SCHEMA),
     validate_initial_settings,
@@ -70,6 +72,7 @@ async def to_code(config):
     cg.add(var.set_lowcut_hz(config[CONF_LOWCUT_HZ]))
     cg.add(var.set_phase_inverted(config[CONF_PHASE_INVERTED]))
     cg.add(var.set_crossover_bypass(config[CONF_CROSSOVER_BYPASS]))
+    cg.add(var.set_output_muted(config[CONF_START_MUTED]))
     # Wrap PR #14389's two-argument PCM-chunk/settings ABI. The original worker
     # still runs exactly once per fragment for Snapcast software volume.
     cg.add_build_flag("-fno-lto")
