@@ -21,7 +21,11 @@ int main(){
   dsp.set_phase_inverted(false);dsp.set_crossover_bypass(true);std::fill(frames.begin(),frames.end(),pack(10000,0));assert(dsp_processor_worker(&c,&s)==0);assert(static_cast<int16_t>(frames.back())==2500);
   dsp.set_crossover_bypass(false);dsp.set_lowcut_hz(30);dsp.set_lowpass_hz(120);std::fill(frames.begin(),frames.end(),pack(10000,10000));assert(dsp_processor_worker(&c,&s)==0);
   for(auto x:frames)assert(static_cast<uint16_t>(x)==static_cast<uint16_t>(x>>16));
-  // DC is correctly rejected by the 30 Hz high-pass; disable it for the\n  // mute/unmute ramp assertions so they test gain recovery, not DC rejection.\n  dsp.set_lowcut_hz(0);\n  dsp.set_output_muted(true);\n  std::fill(frames.begin(),frames.end(),pack(10000,10000));
+  // DC is correctly rejected by the 30 Hz high-pass; disable it for the
+  // mute/unmute ramp assertions so they test gain recovery, not DC rejection.
+  dsp.set_lowcut_hz(0);
+  dsp.set_output_muted(true);
+  std::fill(frames.begin(),frames.end(),pack(10000,10000));
   assert(dsp_processor_worker(&c,&s)==0);
   for (size_t i=1000;i<frames.size();++i) assert(frames[i]==0);
   dsp.set_output_muted(false);
