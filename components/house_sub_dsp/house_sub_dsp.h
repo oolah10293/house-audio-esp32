@@ -14,6 +14,8 @@ class HouseSubDSP : public Component {
   void set_lowcut_hz(float hz);
   void set_phase_inverted(bool inverted);
   void set_crossover_bypass(bool bypass);
+  // Software audio mute; does not remove power from the external amplifier.
+  void set_output_muted(bool muted) { requested_output_muted_.store(muted, std::memory_order_release); }
 
   void setup() override;
   void loop() override;
@@ -35,6 +37,8 @@ class HouseSubDSP : public Component {
   std::atomic<uint32_t> requested_lowcut_millihz_{0};
   std::atomic<bool> requested_phase_inverted_{false};
   std::atomic<bool> requested_crossover_bypass_{false};
+  std::atomic<bool> requested_output_muted_{false};
+  float output_gain_{1.0f};  // Touched only by the PCM processing task.
   std::atomic<uint32_t> requested_version_{1};
 
   uint32_t active_version_{0};
