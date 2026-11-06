@@ -107,6 +107,24 @@ bool HouseSubDSP::process(char *audio, size_t bytes, uint32_t sample_rate) {
   if (seen_audio_ && static_cast<uint32_t>(now - last_pcm_ms_) > 500U) filter_.reset();
   last_pcm_ms_ = now;
   if (!filter_.process(audio, bytes, sample_rate)) return false;
+  // Apply a short ramp *after* the crossover. This mutes the sub without
+  // affecting Snapcast transport/synchronization or upstream volume.
+  // Keep the DSP filter running while muted, so returning audio is seamless.
+  const bool muted = requested_output_muted_.load(std::memory_order_acquire);
+  const float step = 100.0f / static_cast<float>(sample_rate);  // 10 ms fade
+  auto *samples = reinterpret_cast<int16_t *>(audio);  // validated stereo 16-bit PCM
+  for (size_t frame = 0; frame < bytes / 4U; ++frame) {
+    if (muted)
+      output_gain_ = output_gain_ > step ? output_gain_ - step : 0.0f;
+    else
+      output_gain_ = output_gain_ < 1.0f - step ? output_gain_ + step : 1.0f;
+    if (output_gain_ < 1.0f) {
+      for (unsigned channel = 0; channel < 2; ++channel) {
+        const size_t index = 2U * frame + channel;
+        samples[index] = static_cast<int16_t>(std::lround(samples[index] * output_gain_));
+      }
+    }
+  }
   audio_rate_.store(sample_rate, std::memory_order_relaxed);
   seen_audio_ = true;
   return true;
