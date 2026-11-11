@@ -35,3 +35,14 @@ jobs:
           test -s cd-source/build/bootloader/bootloader.bin
           test -s cd-source/build/partition_table/partition-table.bin
           sha256sum cd-source/build/xiao_usb_cdda_probe.bin
+
+      - name: Save flashable build outputs (not a release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: xiao-s3-cdda-probe-espidf-v5.2.8
+          if-no-files-found: error
+          retention-days: 30
+          path: |
+            cd-source/build/xiao_usb_cdda_probe.bin
+            cd-source/build/bootloader/bootloader.bin
+            cd-source/build/partition_table/partition-table.bin
