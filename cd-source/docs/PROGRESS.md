@@ -35,3 +35,14 @@
 - **NO DEVICE PROOF.** USB enumeration, Lite-On SCSI command compatibility, physical power/VBUS arrangement and CD track listing remain untested.
 - **NO RELEASE.** CI built firmware only for verification; it did not upload a package, flash the device or deploy Pi changes.
 
+
+## Downloadable build checkpoint — 2026-11-11
+
+- Normal build authorization also covered saving and supplying the resulting build files; requiring a further permission request for the build artifact was unnecessary.
+- GitHub Actions run: https://github.com/oolah10293/house-audio-esp32/actions/runs/43115795430
+- Built from commit: `3a4c1ef43d687b38d827b67011454764990a87e1`; ESP-IDF `v5.2.8`, `esp32s3`.
+- **RESULT: PASS.** Compile, output verification and artifact upload all completed successfully.
+- Artifact: `xiao-s3-cdda-probe-espidf-v5.2.8` (ZIP); contains `xiao_usb_cdda_probe.bin`, `bootloader/bootloader.bin`, `partition_table/partition-table.bin`. Retained 30 days by GitHub Actions.
+- Application SHA-256: `5814e3499cfac8319cd71147c04883bd0e1bce0ca4c8f219910388b89f617f97`.
+- No device has been flashed; Lite-On USB recognition and CD TOC reading still need hardware verification.
+- No formal software release or installer has been created.
