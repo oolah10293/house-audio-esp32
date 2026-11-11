@@ -3,7 +3,7 @@
 **Status: source checkpoint, NOT BUILT, NOT FLASHED, NOT TESTED ON HARDWARE.**
 
 This is milestone 1 for a future ESP32-S3 network audio-CD source for House Music.
-It is deliberately isolated under \`cd-source/\` on branch \`feature/cdda-usb-probe\`.
+It is deliberately isolated under `cd-source/` on branch `feature/cdda-usb-probe`.
 No existing Snapcast renderer, Raspberry Pi service, MPD setting, or Home Audio YAML is changed.
 
 ## Hardware being used
@@ -26,22 +26,22 @@ Seeed's 5V pin is connected to VBUS; Seeed documents a diode for external 5V sup
 The program does **not** read audio sectors, stream PCM, speak Snapcast, control MPD, use Wi-Fi, or install on any device.
 
 ## Provenance and licensing
-The \`components/usb_host_msc\` layer is adapted from
+The `components/usb_host_msc` layer is adapted from
 [julpage/ESP32_CD_Player](https://github.com/julpage/ESP32_CD_Player),
-upstream commit \`04656eee5d6cfc3a6fab413a28b58a21fe299dca\`.
-That upstream repository uses the WTFPL version 2 license; a copy is in \`THIRD_PARTY_LICENCE\`.
-It provides USB-host enumeration and SCSI MMC operations including \`READ TOC\` and \`READ CD\`.
+upstream commit `04656eee5d6cfc3a6fab413a28b58a21fe299dca`.
+That upstream repository uses the WTFPL version 2 license; a copy is in `THIRD_PARTY_LICENCE`.
+It provides USB-host enumeration and SCSI MMC operations including `READ TOC` and `READ CD`.
 The source here intentionally does **not** include upstream TFT, OLED, button or I2S playback code.
 
 ## After explicit authorization to build
-Working source root will be \`cd-source/\` (ESP-IDF 5.2.x baseline, target \`esp32s3\`).
+Working source root will be `cd-source/` (ESP-IDF 5.2.x baseline, target `esp32s3`).
 First verify USB connectivity and UART logs with a known-good audio CD.
 Do **not** assume this drive supports a USB full-speed fallback until hardware proves it.
 
 **Acceptance:** logs contain the Lite-On's SCSI INQUIRY identity and the correct track count and order for a known audio CD. If USB enumeration, command transport, or TOC fails, capture the UART log and fix that exact problem before adding streaming.
 
 ## Why a separate input architecture
-Per \`house-audio-server/docs/SESSION_BEHAVIOR.md\`, the Raspberry Pi owns MPD queue/control and Snapserver distributes synchronized playback. A CD reader located elsewhere is a **source**, not a passive Snapcast output.
+Per `house-audio-server/docs/SESSION_BEHAVIOR.md`, the Raspberry Pi owns MPD queue/control and Snapserver distributes synchronized playback. A CD reader located elsewhere is a **source**, not a passive Snapcast output.
 Only after the USB milestone passes will we design the Wi-Fi transport and controlled Pi-side input without breaking house sessions.
 
 ## Known source risks
