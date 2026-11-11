@@ -1,0 +1,37 @@
+name: CD source - ESP32-S3 compile check
+
+on:
+  push:
+    branches:
+      - feature/cdda-usb-probe
+    paths:
+      - 'cd-source/**'
+      - '.github/workflows/cd-probe-build.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-cdda-probe:
+    name: Build CD probe (ESP-IDF v5.2.8)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+
+      - name: Compile ESP32-S3 probe
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: v5.2.8
+          target: esp32s3
+          path: cd-source
+          command: idf.py build
+
+      - name: Verify build outputs exist (no release)
+        run: |
+          test -s cd-source/build/xiao_usb_cdda_probe.bin
+          test -s cd-source/build/bootloader/bootloader.bin
+          test -s cd-source/build/partition_table/partition-table.bin
+          sha256sum cd-source/build/xiao_usb_cdda_probe.bin
