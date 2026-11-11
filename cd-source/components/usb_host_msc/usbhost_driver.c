@@ -40,7 +40,7 @@ esp_err_t usbhost_openDevice()
     ESP_LOGI("client_task", "Open device");
     printf("Device addr: %d\n", usbhost_driverObj.dev_addr);
 
-    usb_host_device_open(usbhost_driverObj.handle_client, usbhost_driverObj.dev_addr, &usbhost_driverObj.handle_device);
+    ESP_RETURN_ON_ERROR(usb_host_device_open(usbhost_driverObj.handle_client, usbhost_driverObj.dev_addr, &usbhost_driverObj.handle_device), "usbhost_openDevice", "USB device open failed");
 
     // 读取设备信息
     // 速度，设备地址，端点包长，使用的配置号，厂家、产品、序列号字符串描述符
@@ -170,12 +170,18 @@ void usbhost_closeDevice()
     if (usbhost_driverObj.handle_device == NULL)
         return;
 
-    usb_host_interface_release(
-        usbhost_driverObj.handle_client,
-        usbhost_driverObj.handle_device,
-        usbhost_driverObj.desc_interface->bInterfaceNumber);
+    // An enumeration or interface-claim failure can leave this partially opened.
+    if (usbhost_driverObj.desc_interface != NULL && usbhost_driverObj.deviceIsOpened) {
+        usb_host_interface_release(
+            usbhost_driverObj.handle_client,
+            usbhost_driverObj.handle_device,
+            usbhost_driverObj.desc_interface->bInterfaceNumber);
+    }
     usb_host_device_close(usbhost_driverObj.handle_client, usbhost_driverObj.handle_device);
-    usb_host_transfer_free(usbhost_driverObj.transferObj);
+    if (usbhost_driverObj.transferObj != NULL) {
+        usb_host_transfer_free(usbhost_driverObj.transferObj);
+        usbhost_driverObj.transferObj = NULL;
+    }
 
     usbhost_driverObj.handle_device = NULL;
     usbhost_driverObj.desc_interface = NULL;
@@ -307,6 +313,11 @@ void usbhost_driverInit()
     };
     ESP_ERROR_CHECK(usb_host_install(&host_config));
 
+    // Create synchronization before host/client tasks can receive events.
+    usbhost_driverObj.transferDone = xSemaphoreCreateBinary();
+    scsiExeLock = xSemaphoreCreateMutex();
+    configASSERT(usbhost_driverObj.transferDone != NULL && scsiExeLock != NULL);
+
     BaseType_t ret;
 
     // usb主机库守护进程
@@ -335,8 +346,6 @@ void usbhost_driverInit()
 
     vTaskDelay(10); // Short delay to let client task spin up
 
-    usbhost_driverObj.transferDone = xSemaphoreCreateBinary();
-    scsiExeLock = xSemaphoreCreateMutex();
 }
 
 ////
