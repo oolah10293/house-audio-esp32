@@ -5,7 +5,7 @@
 CI run: https://github.com/oolah10293/house-audio-esp32/actions/runs/43114639459
 Source build commit: `82f71457485307702f16a18eb8d2134fa0aeeeab`.
 Generated app binary size: `0x3bf80` bytes; sha256 `1e9196dd959bbe65cf91431a005babda859f07a3f75264d6c303f673d5a61cce`.
-The CI artifacts were verified inside the runner only; **no firmware package or release has been uploaded**.
+**Downloadable CI build output:** [GitHub Actions run 43115795430](https://github.com/oolah10293/house-audio-esp32/actions/runs/43115795430) → Artifacts → `xiao-s3-cdda-probe-espidf-v5.2.8`. Verified ZIP contains app, bootloader and partition binaries; SHA-256 of app binary: `5814e3499cfac8319cd71147c04883bd0e1bce0ca4c8f219910388b89f617f97`. GitHub artifact retention: 30 days. **This is a build artifact, not a published firmware release or a hardware test.**
 
 This is milestone 1 for a future ESP32-S3 network audio-CD source for House Music.
 It is deliberately isolated under `cd-source/` on branch `feature/cdda-usb-probe`.
