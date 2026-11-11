@@ -167,9 +167,10 @@ static void probeTask(void *unused) {
   (void)unused;
   bool opened = false;
   bool tracksKnown = false;
-  char drive[120] = "";
-  char desc[180] = "";
-  char tracks[7000] = "";
+  // Keep large buffers in static RAM rather than the probe task's stack.
+  static char drive[120] = "";
+  static char desc[180] = "";
+  static char tracks[7000] = "";
 
   for (;;) {
     if (!usbhost_driverObj.deviceIsOpened) {
