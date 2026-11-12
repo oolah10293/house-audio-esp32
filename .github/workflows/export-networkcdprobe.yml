@@ -1,0 +1,40 @@
+name: Arduino IDE CD probe - source ZIP
+
+on:
+  push:
+    branches:
+      - feature/cdda-arduino-ide
+    paths:
+      - '.github/workflows/export-networkcdprobe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-zip:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Arduino source branch
+        uses: actions/checkout@v4
+
+      - name: Create ready-to-open Arduino source ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/NetworkCDProbe
+          cp -R cd-arduino/NetworkCDProbe/. dist/NetworkCDProbe/
+          cp cd-arduino/README.md dist/README.md
+          cp cd-arduino/THIRD_PARTY_LICENCE dist/THIRD_PARTY_LICENCE
+          cd dist
+          zip -qr NetworkCDProbe_ArduinoIDE.zip NetworkCDProbe README.md THIRD_PARTY_LICENCE
+          unzip -l NetworkCDProbe_ArduinoIDE.zip
+          test -s NetworkCDProbe_ArduinoIDE.zip
+
+      - name: Make source ZIP available
+        uses: actions/upload-artifact@v4
+        with:
+          name: NetworkCDProbe-ArduinoIDE-source
+          path: dist/NetworkCDProbe_ArduinoIDE.zip
+          if-no-files-found: error
+          retention-days: 30
