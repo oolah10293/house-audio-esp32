@@ -32,7 +32,8 @@ esp_err_t usbhost_resetRecovery()
     // (b) a Clear Feature HALT to the Bulk-In endpoint
     // (c) a Clear Feature HALT to the Bulk-Out endpoint
     ESP_LOGI("usbhost_resetRecovery", "Bulk-Only Mass Storage Reset");
-    usbhost_cmd_bulkOnlyMassStorageReset();
+    esp_err_t resetErr = usbhost_cmd_bulkOnlyMassStorageReset();
+    if (resetErr != ESP_OK) return resetErr;
     ESP_LOGI("usbhost_resetRecovery", "clearFeature ep_in_num");
     usbhost_clearFeature(usbhost_driverObj.ep_in_num);
     ESP_LOGI("usbhost_resetRecovery", "clearFeature ep_out_num");
