@@ -19,3 +19,14 @@ GitHub Actions build: `arduino-cd-input-check.yml` with `esp32:esp32@2.0.14` / `
 
 ## User delivery
 Standalone Arduino sketch ZIP `HouseMusic_CD_Input_AutoRecovery_v0_2_XIAO.zip`. Includes a single placeholder `LocalNetworkConfig.h` and all six USB/SCSI driver files; excludes the redundant example config header. User should copy their already-working credentials from their previous `LocalNetworkConfig.h`. No Pi changes, production main merge, or hardware flashing has been performed by the assistant.
+
+## User hardware field result — 2026-11-12
+
+**PASS, initial recovery demonstrated on actual Lite-On + XIAO ESP32-S3:** User supplied a screenshot of XIAO page at `192.168.1.175` after flashing v0.2 and powering the system. It shows:
+
+- `Status: Audio CD detected` with **Track 1 through Track 11** present.
+- `SCSI diagnostic: Drive recovered; TOC refreshed`.
+- `Consecutive not-ready checks: 0`.
+- `Automatic drive-start attempts: 1`.
+
+This supports successful automatic SCSI drive-start recovery during startup and tracks being available afterward. **Not yet verified:** hours-long stability, whether later track-list losses recur, full-track audio stream through v0.2, or recovery after arbitrary drive disconnect/reconnect.
