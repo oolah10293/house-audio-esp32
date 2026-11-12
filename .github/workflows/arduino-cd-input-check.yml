@@ -5,6 +5,7 @@ on:
     branches:
       - feature/reusable-input-node
       - fix/liteon-usb-transport-recovery
+      - fix/liteon-usb-transport-recovery
     paths:
       - 'cd-arduino/HouseAudioCDInput/**'
       - '.github/workflows/arduino-cd-input-check.yml'
@@ -43,4 +44,17 @@ jobs:
         with:
           name: HouseMusic_XIAO_CD_Transport_Recovery
           path: HouseMusic_XIAO_CD_Transport_Recovery.zip
+          if-no-files-found: error
+      - name: Package revised Lite-On Arduino sketch
+        run: |
+          set -euo pipefail
+          mkdir -p delivery/HouseAudioCDInput
+          cp -R cd-arduino/HouseAudioCDInput/. delivery/HouseAudioCDInput/
+          cp cd-arduino/HouseAudioCDInput/LocalNetworkConfig.example.h delivery/HouseAudioCDInput/LocalNetworkConfig.h
+          cd delivery
+          zip -q -r ../HouseMusic_XIAO_CD_USB_Recovery.zip HouseAudioCDInput
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HouseMusic_XIAO_CD_USB_Recovery
+          path: HouseMusic_XIAO_CD_USB_Recovery.zip
           if-no-files-found: error
