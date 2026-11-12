@@ -1,7 +1,8 @@
 /*
  * House Audio CD Input: USB audio-CD source node (Arduino IDE 2.0.14).
  * Uses the tested XIAO ESP32-S3 USB MSC/SCSI driver + reusable HTTP WAV transport.
- * This is a new, untested source, not a replacement for the proven NetworkCDProbe.
+ * v0.2: resilient disc readiness / SCSI sense diagnostics and guarded drive restart.
+ * Existing CD audio streaming code remains unchanged.
  * Direct home Wi-Fi only; set credentials in LocalNetworkConfig.h before uploading.
  * No ESPHome dependency; use the normal Arduino IDE Upload.
  */
@@ -28,6 +29,13 @@ static AudioInputTrack discTracks[99];
 static size_t discTrackCount = 0;
 static uint8_t tocBuffer[4 + 8 * 100];
 static char statusText[128] = "Starting";
+static char scsiDiagnostic[180] = "No SCSI errors reported";
+static uint32_t consecutiveNotReady = 0;
+static uint32_t recoveryAttempts = 0;
+static constexpr uint32_t CD_POLL_MS = 2000;
+static constexpr uint32_t KEEP_TRACKS_THROUGH_FAILURES = 4; // retain through brief glitches (8 seconds)
+static constexpr uint32_t DRIVE_START_RETRY_MS = 30000;
+
 static String gatewayIP, friendlyName, sourceId;
 static int lastRegisterHTTP = -999; // -999 means not attempted yet
 static uint32_t lastRegister = 0, lastReconnect = 0;
@@ -40,11 +48,53 @@ static uint32_t be32(const uint8_t *p) {
 }
 
 static void setStatus(const char *text) {
+  bool changed = false;
   if (xSemaphoreTake(stateMutex, pdMS_TO_TICKS(200)) == pdTRUE) {
+    changed = (strncmp(statusText, text, sizeof statusText) != 0);
     snprintf(statusText, sizeof statusText, "%s", text);
     xSemaphoreGive(stateMutex);
   }
-  Serial.printf("[CD] %s\n", text);
+  if (changed) Serial.printf("[CD] %s\n", text);
+}
+
+static void setScsiDiagnostic(const char *text, uint32_t failures, uint32_t attempts) {
+  bool changed = false;
+  if (xSemaphoreTake(stateMutex, pdMS_TO_TICKS(200)) == pdTRUE) {
+    changed = (strncmp(scsiDiagnostic, text, sizeof scsiDiagnostic) != 0);
+    snprintf(scsiDiagnostic, sizeof scsiDiagnostic, "%s", text);
+    consecutiveNotReady = failures;
+    recoveryAttempts = attempts;
+    xSemaphoreGive(stateMutex);
+  }
+  if (changed) Serial.printf("[CD/SCSI] %s\n", text);
+}
+
+// Request SCSI sense only after a failed readiness command, never during normal reads.
+// If sense retrieval itself fails, report its transport error instead of inventing codes.
+static bool explainNotReady(esp_err_t readyError, char *out, size_t size) {
+  uint8_t sense[18] = {};
+  esp_err_t sr = usbhost_scsi_requestSense(sense);
+  if (sr != ESP_OK) {
+    snprintf(out, size, "TEST UNIT READY %s (0x%X); REQUEST SENSE %s (0x%X)",
+             esp_err_to_name(readyError), (unsigned)readyError,
+             esp_err_to_name(sr), (unsigned)sr);
+    return false;
+  }
+  uint8_t format = sense[0] & 0x7f;
+  uint8_t key, asc, ascq;
+  if (format == 0x70 || format == 0x71) {
+    key = sense[2] & 0x0f; asc = sense[12]; ascq = sense[13];
+  } else if (format == 0x72 || format == 0x73) {
+    key = sense[1] & 0x0f; asc = sense[2]; ascq = sense[3];
+  } else {
+    snprintf(out, size, "TEST UNIT READY %s (0x%X); unknown sense format 0x%02X",
+             esp_err_to_name(readyError), (unsigned)readyError, (unsigned)format);
+    return false;
+  }
+  snprintf(out, size, "TEST UNIT READY %s (0x%X); sense key 0x%02X ASC 0x%02X ASCQ 0x%02X",
+           esp_err_to_name(readyError), (unsigned)readyError,
+           (unsigned)key, (unsigned)asc, (unsigned)ascq);
+  return key == 0x02 && asc == 0x3a; // NOT READY / MEDIUM NOT PRESENT
 }
 
 static size_t snapshotTracks(AudioInputTrack *out, size_t capacity) {
@@ -68,12 +118,27 @@ static bool readDiscToc() {
   uint8_t head[4] = {};
   uint32_t size = sizeof head;
   esp_err_t err = usbhost_scsi_readTOC(false, 0, head, &size);
-  if (err != ESP_OK || size != sizeof head) return false;
+  if (err != ESP_OK || size != sizeof head) {
+    char note[160];
+    snprintf(note, sizeof note, "READ TOC header error: %s (0x%X), %lu/4 bytes",
+             esp_err_to_name(err), (unsigned)err, (unsigned long)size);
+    setScsiDiagnostic(note, 0, recoveryAttempts);
+    return false;
+  }
   const size_t total = be16(head) + 2u;
-  if (total < 12 || total > sizeof tocBuffer || ((total - 4) % 8) != 0) return false;
+  if (total < 12 || total > sizeof tocBuffer || ((total - 4) % 8) != 0) {
+    setScsiDiagnostic("READ TOC returned an invalid table length", 0, recoveryAttempts);
+    return false;
+  }
   size = (uint32_t)total;
   err = usbhost_scsi_readTOC(false, 0, tocBuffer, &size);
-  if (err != ESP_OK || size < total) return false;
+  if (err != ESP_OK || size < total) {
+    char note[160];
+    snprintf(note, sizeof note, "READ TOC data error: %s (0x%X), %lu/%u bytes",
+             esp_err_to_name(err), (unsigned)err, (unsigned long)size, (unsigned)total);
+    setScsiDiagnostic(note, 0, recoveryAttempts);
+    return false;
+  }
   const size_t entries = (total - 4) / 8;
   AudioInputTrack fresh[99];
   size_t count = 0;
@@ -89,6 +154,7 @@ static bool readDiscToc() {
   memcpy(discTracks, fresh, count * sizeof(AudioInputTrack));
   discTrackCount = count;
   xSemaphoreGive(tocMutex);
+  if (!count) setScsiDiagnostic("READ TOC succeeded but no audio tracks found", 0, recoveryAttempts);
   return count > 0;
 }
 
@@ -102,23 +168,83 @@ static bool readCDFrames(uint32_t lba, uint32_t frames, uint8_t *buffer, size_t 
 
 static void discTask(void *) {
   bool hadDrive = false, haveTracks = false;
+  uint32_t failures = 0, attempts = 0, lastStartAttempt = 0;
+  bool startAttempted = false;
   for (;;) {
     if (!usbhost_driverObj.deviceIsOpened) {
-      if (hadDrive) { forgetDisc(); setStatus("USB drive disconnected"); }
+      if (hadDrive) {
+        forgetDisc();
+        setStatus("USB drive disconnected");
+      }
       hadDrive = false;
       haveTracks = false;
+      failures = attempts = 0;
+      startAttempted = false;
+      setScsiDiagnostic("Waiting for USB drive", 0, 0);
     } else {
-      if (!hadDrive) { hadDrive = true; setStatus("USB CD drive connected"); }
-      if (rescan) { rescan = false; forgetDisc(); haveTracks = false; }
-      if (usbhost_scsi_testUnitReady() != ESP_OK) {
-        if (haveTracks) { forgetDisc(); setStatus("CD removed or drive not ready"); }
+      if (!hadDrive) {
+        hadDrive = true;
+        failures = attempts = 0;
+        startAttempted = false;
+        setStatus("USB CD drive connected; checking disc");
+      }
+      if (rescan) {
+        rescan = false;
+        forgetDisc();
         haveTracks = false;
-      } else if (!haveTracks) {
-        if (readDiscToc()) { haveTracks = true; setStatus("Audio CD detected"); }
-        else setStatus("Waiting for readable audio CD");
+        failures = 0;
+        setStatus("Rescanning CD");
+      }
+      esp_err_t ready = usbhost_scsi_testUnitReady();
+      if (ready == ESP_OK) {
+        bool wasRecovering = failures > 0;
+        failures = 0;
+        // Re-read the TOC after recovery to avoid exposing a cached list
+        // from a disc that may have been swapped while the drive was unready.
+        if (!haveTracks || wasRecovering) {
+          if (readDiscToc()) {
+            haveTracks = true;
+            setScsiDiagnostic(wasRecovering ? "Drive recovered; TOC refreshed" : "Drive ready; TOC read OK", 0, attempts);
+            setStatus("Audio CD detected");
+          } else {
+            // A single TOC failure must not erase known-good tracks.
+            if (!haveTracks) setStatus("Drive ready; retrying CD track read");
+            else setStatus("Drive ready; retrying TOC refresh");
+          }
+        }
+      } else {
+        if (failures < 0xffffffffu) ++failures;
+        char note[180];
+        bool noMedium = explainNotReady(ready, note, sizeof note);
+        setScsiDiagnostic(note, failures, attempts);
+        if (haveTracks && failures <= KEEP_TRACKS_THROUGH_FAILURES) {
+          setStatus("CD briefly not ready; keeping tracks while retrying");
+        } else {
+          if (haveTracks) { forgetDisc(); haveTracks = false; }
+          setStatus(noMedium ? "No CD in drive; waiting for disc" : "CD not ready; automatic recovery active");
+        }
+        // Try the non-ejecting SCSI START command when the drive remains
+        // unready; limit to once per 30 seconds, never when sense says
+        // "medium not present". Do not reset the USB bus while WAV reads
+        // may be in flight. Subsequent polling rechecks readiness and TOC.
+        if (!noMedium && failures >= 3 &&
+            (!startAttempted || millis() - lastStartAttempt >= DRIVE_START_RETRY_MS)) {
+          lastStartAttempt = millis();
+          startAttempted = true;
+          ++attempts;
+          esp_err_t startErr = usbhost_scsi_startStopUnit(false, true);
+          char recovery[180];
+          snprintf(recovery, sizeof recovery,
+                   "Drive start attempt %lu: %s (0x%X); last %s",
+                   (unsigned long)attempts, esp_err_to_name(startErr),
+                   (unsigned)startErr, note);
+          setScsiDiagnostic(recovery, failures, attempts);
+          setStatus(startErr == ESP_OK ? "Requested CD drive start; retrying"
+                                        : "CD start command failed; retrying");
+        }
       }
     }
-    vTaskDelay(pdMS_TO_TICKS(2000));
+    vTaskDelay(pdMS_TO_TICKS(CD_POLL_MS));
   }
 }
 
@@ -131,10 +257,18 @@ static String htmlEscape(String s) {
 
 static void statusPage() {
   char stage[sizeof statusText];
+  char lastError[sizeof scsiDiagnostic];
+  uint32_t failCount = 0, starts = 0;
   if (xSemaphoreTake(stateMutex, pdMS_TO_TICKS(200)) == pdTRUE) {
     memcpy(stage, statusText, sizeof stage);
+    memcpy(lastError, scsiDiagnostic, sizeof lastError);
+    failCount = consecutiveNotReady;
+    starts = recoveryAttempts;
     xSemaphoreGive(stateMutex);
-  } else snprintf(stage, sizeof stage, "Busy");
+  } else {
+    snprintf(stage, sizeof stage, "Busy");
+    snprintf(lastError, sizeof lastError, "Busy");
+  }
   AudioInputTrack tracks[99];
   size_t n = snapshotTracks(tracks, 99);
   String page;
@@ -147,7 +281,10 @@ static void statusPage() {
   page += htmlEscape(sourceId); page += F("</p><p>Wi-Fi: ");
   page += WiFi.status() == WL_CONNECTED ? htmlEscape(WiFi.localIP().toString()) : String("not connected");
   page += F("</p><p>Pi gateway: "); page += htmlEscape(gatewayIP); page += F(":8768</p>");
-  page += F("<h3>CD tracks</h3><ul>");
+  page += F("<p>SCSI diagnostic: "); page += htmlEscape(String(lastError));
+  page += F("</p><p>Consecutive not-ready checks: "); page += String(failCount);
+  page += F("</p><p>Automatic drive-start attempts: "); page += String(starts);
+  page += F("</p><h3>CD tracks</h3><ul>");
   for (size_t i = 0; i < n; i++) {
     page += "<li><a href='http://" + WiFi.localIP().toString() + ":8080/track/" + String(tracks[i].number) + ".wav'>Track " + String(tracks[i].number) + "</a></li>";
   }
