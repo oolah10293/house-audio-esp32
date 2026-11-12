@@ -61,7 +61,7 @@ jobs:
           from zipfile import ZipFile, ZIP_DEFLATED
           import hashlib, json, subprocess
           source = Path('cd-arduino/HouseAudioCDInput')
-          path = Path('HouseMusic_XIAO_CD_USB_Recovery.zip')
+          path = Path('HouseMusic_CD_Player.zip')
           required = [
               'HouseAudioCDInput.ino',
               'LocalNetworkConfig.h',
@@ -80,6 +80,9 @@ jobs:
           example = (source / 'LocalNetworkConfig.example.h').read_bytes()
           assert config == example, 'Config differs from placeholder'
           assert b'YOUR_' in example or b'REPLACE' in example or b'YOUR' in example, 'Missing clear placeholder'
+          sketch = (source / 'HouseAudioCDInput.ino').read_text()
+          assert 'bootSession' in sketch and 'discRevision' in sketch, 'Automatic CD event identity missing'
+          assert 'It does not automatically change House Music playback.' not in sketch, 'Wrong old firmware sketch'
           source_sha = subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
           manifest = {}
           with ZipFile(path, 'w', compression=ZIP_DEFLATED) as archive:
@@ -87,10 +90,15 @@ jobs:
                   data = (source / rel).read_bytes()
                   archive.writestr('HouseAudioCDInput/' + rel, data)
                   manifest[rel] = hashlib.sha256(data).hexdigest()
-              archive.writestr('SOURCE_SHA.txt', source_sha + '\n')
+              archive.writestr('SOURCE_SHA.txt', source_sha + '\\n')
+              archive.writestr('VERSION.txt',
+                  'House Music CD Player\\n'
+                  + 'Source commit: ' + source_sha + '\\n'
+                  + 'Automatic playback identity: bootSession/discRevision present\\n'
+                  + 'Hardware acceptance: NOT VERIFIED\\n')
           with ZipFile(path) as archive:
               assert archive.testzip() is None, 'Corrupt ZIP'
-              assert set(archive.namelist()) == {'HouseAudioCDInput/' + p for p in required} | {'SOURCE_SHA.txt'}
+              assert set(archive.namelist()) == {'HouseAudioCDInput/' + p for p in required} | {'SOURCE_SHA.txt','VERSION.txt'}
               for rel, digest in manifest.items():
                   assert hashlib.sha256(archive.read('HouseAudioCDInput/' + rel)).hexdigest() == digest
               assert archive.read('SOURCE_SHA.txt').decode().strip() == source_sha
@@ -106,8 +114,8 @@ jobs:
       - name: Upload verified pair
         uses: actions/upload-artifact@v4
         with:
-          name: HouseMusic_XIAO_CD_USB_Recovery
+          name: HouseMusic_CD_Player
           path: |
-            HouseMusic_XIAO_CD_USB_Recovery.zip
+            HouseMusic_CD_Player.zip
             SOURCE_MANIFEST.json
           if-no-files-found: error
