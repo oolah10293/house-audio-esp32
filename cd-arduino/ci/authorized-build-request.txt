@@ -1,3 +1,3 @@
-# Authorized in chat to finish, compile, and package the automatic-playback CD integration.
-# Request records the exact source tree revision used by the workflow.
-BUILD_AND_PACKAGE 20261112-liteon-autoplay-01
+# Authorized in chat on 2026-11-12 to build and package the complete LiteOn CD revision.
+# All firmware source changes precede this marker-only commit.
+BUILD_AND_PACKAGE 20261112-liteon-full-revision-02
