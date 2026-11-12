@@ -6,6 +6,8 @@ on:
       - feature/cdda-arduino-ide
     paths:
       - '.github/workflows/export-networkcdprobe.yml'
+      - 'cd-arduino/NetworkCDProbe/**'
+      - 'cd-arduino/README.md'
   workflow_dispatch:
 
 permissions:
