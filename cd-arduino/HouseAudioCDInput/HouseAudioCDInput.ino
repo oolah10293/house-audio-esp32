@@ -257,6 +257,7 @@ static void discTask(void *) {
   bool startAttempted = false;
   bool forceTocScan = false;
   bool speedApplied = false;
+  uint32_t speedDiscRevision = 0;
   uint32_t lastTocScan = 0;
   for (;;) {
     // Never send background SCSI commands while a WAV transfer owns the
@@ -308,9 +309,12 @@ static void discTask(void *) {
           if (readDiscToc()) {
             haveTracks = true;
             setScsiDiagnostic(wasRecovering ? "Drive recovered; TOC refreshed" : "Drive ready; TOC read OK", 0, attempts);
-            if (!speedApplied) {
+            // Reapply after a genuine disc identity change, even if the
+            // drive never reported medium-not-present between the discs.
+            if (!speedApplied || speedDiscRevision != discRevision) {
               esp_err_t speedErr = usbhost_scsi_setCDSpeed(CD_READ_SPEED_KBPS);
               speedApplied = speedErr == ESP_OK;
+              if (speedApplied) speedDiscRevision = discRevision;
               Serial.printf("[CD/SCSI] SET CD SPEED request %u kB/s (~4x): %s (0x%X)\\n",
                             (unsigned)CD_READ_SPEED_KBPS, esp_err_to_name(speedErr), (unsigned)speedErr);
               // A rejected request must never prevent playback; drive support
