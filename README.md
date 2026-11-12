@@ -2,9 +2,9 @@
 
 ## Lite-On CD delivery: fixed names and no ambiguous packages (user requirement)
 
-**Read this before touching the Lite-On CD sketch or sending any CD files.**
+**Read this before touching the Lite-On SOHW-1633SX CD sketch or sending any CD files.**
 
-- The **only user-facing ESP32 CD package name** is `HouseMusic_CD_Player.zip`. The **only user-facing Pi integration package name** is `HouseMusic_CD_Pi.zip`.
+- The **only user-facing ESP32 CD package name** is `HouseMusic_LiteOn_SOHW-1633SX.zip`. The **only user-facing Pi integration package name** is `HouseMusic_CD_Pi.zip`.
 - Never hand off names with `Recovery`, `Transport`, `USB`, `Test`, `Auto`, or other suffixes that make versions indistinguishable. Internal Git refs and manifests may carry revision information.
 - Archive must contain a clear `VERSION.txt` stating the **exact commit**, whether automatic-playback identity (`bootSession`/`discRevision`) is present, compile status, and *not yet tested on hardware* where applicable. In the response, identify what's installed versus what's in the new package.
 - Before delivery, verify from the **actual ZIP** that its Arduino sketch contains the intended automatic-playback identifiers and **does not** contain the old webpage declaration `It does not automatically change House Music playback.` Never confuse the old working v0.2 sketch with the automatic-playback candidate again.
