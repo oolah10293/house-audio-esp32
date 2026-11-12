@@ -339,10 +339,10 @@ static void registerWithPi() {
   String safeName = friendlyName;
   safeName.replace("\\", "\\\\"); safeName.replace("\"", "\\\"");
   safeName.replace("\n", " "); safeName.replace("\r", " ");
-  String json = "{\\\"sourceId\\\":\\\"" + sourceId + "\\",\\\"name\\\":\\\"" + safeName +
-                "\\",\\\"kind\\\":\\\"cd\\\",\\\"status\\\":\\\"" + (n ? String("ready") : String("no_disc")) +
-                "\\",\\\"bootSession\\\":\\\"" + String(bootSession) + "\\",\\\"discRevision\\\":" +
-                String(discRevision) + ",\\\"port\\\":8080,\\\"tracks\\\":[";
+  String json = "{\"sourceId\":\"" + sourceId + "\",\"name\":\"" + safeName +
+                "\",\"kind\":\"cd\",\"status\":\"" + (n ? String("ready") : String("no_disc")) +
+                "\",\"bootSession\":\"" + String(bootSession) + "\",\"discRevision\":" +
+                String(discRevision) + ",\"port\":8080,\"tracks\":[";
   for (size_t i = 0; i < n; i++) {
     if (i) json += ',';
     json += String(tracks[i].number);
