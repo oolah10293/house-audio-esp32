@@ -51,3 +51,12 @@ This is a project checkpoint, not a claim that the firmware is fixed. It applies
 - A successful run must be verified against the exact marker commit SHA, its compile step, its archive validation, and its artifact. A GitHub Actions success alone does not mean physical hardware is tested.
 - The assistant remains responsible for GitHub operations and source/package checks. The user owns physical installation, real-hardware testing, and acceptance. Never tell the user to navigate GitHub to start the process.
 - **Not yet proven:** The new push-controlled dispatch has not been triggered, and no release artifact has been created through it.
+
+
+## Verified trigger/deny test (2026-11-12)
+
+- The assistant committed a **non-authorizing** marker update only, SHA `14f5de912f737a34e530f9048607c71eccdf4674`.
+- GitHub automatically started run [43293617329](https://github.com/oolah10293/house-audio-esp32/actions/runs/43293617329) from the marker push, using the development-branch workflow.
+- The checkout completed, then the **Enforce explicit authorization marker** step failed as expected.
+- Crucially, the Arduino toolchain, compilation, ZIP validation, and artifact upload were **all skipped**. This verifies chat-controlled triggering and refusal to build without an approved marker.
+- The *authorized happy path* remains untested pending the user's explicit authorization of a build/package. An untested happy path must not be described as passing.
