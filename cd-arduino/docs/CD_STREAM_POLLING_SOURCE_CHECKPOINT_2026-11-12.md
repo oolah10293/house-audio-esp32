@@ -19,3 +19,13 @@ Existing individual-command `scsiExeLock` remains in place; new stream lease add
 
 ## Future acceptance when user authorizes build
 Compile exact committed revision; inspect diagnostics; test CD detection, complete streamed playback over multiple tracks, normal next/previous, eject/reinsert and changed disc, manual rescan, non-disc MP3 restoration, and deliberate transport failures. Monitor USB serial READ CD details and failures of BOT reset/endpoint clear. Avoid stronger auto-reset/re-enumeration until evidence supports it.
+
+
+## Next revision plan (planning only; no implementation or build authorization)
+Add both **bounded READ CD retries** and **read-speed control** to the LiteOn CD firmware:
+- Retry failed or short CD audio reads a limited number of times, record the failing LBA and transport/SCSI error, and avoid indefinite hangs. When retries are exhausted, report the failure and let another track be selected without erasing the disc list solely because of a read failure.
+- Request a moderate audio-CD read speed using the existing `usbhost_scsi_setCDSpeed()` command (initial target 4× for hardware evaluation). Verify whether the LiteOn honors it and whether streaming remains fast enough. Speed is an operating parameter, not an assumed cure for read failures.
+- Coordinate read retries, drive commands, and speed setting under the existing stream/polling synchronization. Preserve prior CD autoplay, next/previous, and Pi library restoration behavior.
+- Assess failure and recovery on the drive with hardware evidence; an ESP32 restart did **not** recover CD detection in the reported case.
+
+These are planned changes, not yet coded, compiled, packaged, or tested. Explicit authorization is required before a firmware build.
