@@ -25,3 +25,11 @@ User-reported output, not independently reproduced by us:
 - Firmware **not flashed**; no Lite-On hardware operation verified.
 
 Recommended next diagnostic (not yet reported as done): Disconnect peripherals/external 5V, leave only PC USB, force Seeed XIAO ESP32-S3 ROM bootloader with BOOT button held during USB connection, select resulting Arduino IDE port, and retry normal Upload at 115200. Seeed documentation: https://wiki.seeedstudio.com/xiao_esp32s3_getting_started/ . Escalate power/cable/reset if reproducible.
+
+## Arduino core/version clarification and next isolation test (2026-11-11)
+
+User confirmed their Arduino IDE uses **esp32 by Espressif Systems 2.0.14**, intentionally selected previously for compatibility with a separate ESP32 composite-video CRT visualizer. **Do not direct them to update this shared Arduino core without a plan to preserve the working visualizer**.
+
+The CD probe sketch **compiled successfully** under their current 2.0.14 installation, based on user-provided output. The prior README's version 3.3.12 requirement is a code-inspection target, *not* a demonstrated minimum for compilation. Arduino ESP32 2.0.14 runtime / USB host compatibility is still unverified; do not assume a successful compile proves hardware behavior.
+
+The separate failure is during flashing: both 921600 and 115200 uploads reached `Stub running...` and then lost serial communication (before completion). Next requested diagnostic is a **normal Arduino IDE built-in Blink upload to the same XIAO under unchanged board/port settings**, to distinguish a generalized Arduino upload problem from a CD sketch-specific one. Blink result pending; no hardware or firmware claim yet.
