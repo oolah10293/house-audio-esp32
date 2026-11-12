@@ -32,7 +32,13 @@ static char statusText[128] = "Starting";
 static char scsiDiagnostic[180] = "No SCSI errors reported";
 static uint32_t consecutiveNotReady = 0;
 static uint32_t recoveryAttempts = 0;
+static char bootSession[17] = {};
+static uint32_t discRevision = 0;
+static uint32_t discFingerprint = 0;
+static bool discEverDetected = false;
+static bool physicalMediaMissing = false;
 static constexpr uint32_t CD_POLL_MS = 2000;
+static constexpr uint32_t CD_TOC_RECHECK_MS = 15000;
 static constexpr uint32_t KEEP_TRACKS_THROUGH_FAILURES = 4; // retain through brief glitches (8 seconds)
 static constexpr uint32_t DRIVE_START_RETRY_MS = 30000;
 
@@ -150,7 +156,23 @@ static bool readDiscToc() {
     if (end <= start || desc[2] < 1 || desc[2] > 99) continue;
     if (count < 99) fresh[count++] = {desc[2], start, end};
   }
+  // Fingerprint the TOC, not just the track count. A new disc can have
+  // exactly the same number of tracks as the previous one.
+  uint32_t fingerprint = 2166136261u;
+  for (size_t i = 0; i < total; ++i) {
+    fingerprint ^= tocBuffer[i];
+    fingerprint *= 16777619u;
+  }
   if (xSemaphoreTake(tocMutex, pdMS_TO_TICKS(250)) != pdTRUE) return false;
+  if (count && (!discEverDetected || physicalMediaMissing || fingerprint != discFingerprint)) {
+    ++discRevision;
+    if (discRevision == 0) ++discRevision;
+  }
+  if (count) {
+    discEverDetected = true;
+    discFingerprint = fingerprint;
+    physicalMediaMissing = false;
+  }
   memcpy(discTracks, fresh, count * sizeof(AudioInputTrack));
   discTrackCount = count;
   xSemaphoreGive(tocMutex);
@@ -170,9 +192,11 @@ static void discTask(void *) {
   bool hadDrive = false, haveTracks = false;
   uint32_t failures = 0, attempts = 0, lastStartAttempt = 0;
   bool startAttempted = false;
+  uint32_t lastTocScan = 0;
   for (;;) {
     if (!usbhost_driverObj.deviceIsOpened) {
       if (hadDrive) {
+        physicalMediaMissing = true;
         forgetDisc();
         setStatus("USB drive disconnected");
       }
@@ -201,7 +225,12 @@ static void discTask(void *) {
         failures = 0;
         // Re-read the TOC after recovery to avoid exposing a cached list
         // from a disc that may have been swapped while the drive was unready.
-        if (!haveTracks || wasRecovering) {
+        // Catch quick swaps between readiness polls without interrogating
+        // the drive during active audio extraction.
+        bool scheduled = millis() - lastTocScan >= CD_TOC_RECHECK_MS
+                         && !audioInputIsStreaming();
+        if (!haveTracks || wasRecovering || scheduled) {
+          lastTocScan = millis();
           if (readDiscToc()) {
             haveTracks = true;
             setScsiDiagnostic(wasRecovering ? "Drive recovered; TOC refreshed" : "Drive ready; TOC read OK", 0, attempts);
@@ -216,6 +245,7 @@ static void discTask(void *) {
         if (failures < 0xffffffffu) ++failures;
         char note[180];
         bool noMedium = explainNotReady(ready, note, sizeof note);
+        if (noMedium) physicalMediaMissing = true;
         setScsiDiagnostic(note, failures, attempts);
         if (haveTracks && failures <= KEEP_TRACKS_THROUGH_FAILURES) {
           setStatus("CD briefly not ready; keeping tracks while retrying");
@@ -284,6 +314,8 @@ static void statusPage() {
   page += F("<p>SCSI diagnostic: "); page += htmlEscape(String(lastError));
   page += F("</p><p>Consecutive not-ready checks: "); page += String(failCount);
   page += F("</p><p>Automatic drive-start attempts: "); page += String(starts);
+  page += F("</p><p>Boot session: "); page += bootSession;
+  page += F("</p><p>Disc revision: "); page += String(discRevision);
   page += F("</p><h3>CD tracks</h3><ul>");
   for (size_t i = 0; i < n; i++) {
     page += "<li><a href='http://" + WiFi.localIP().toString() + ":8080/track/" + String(tracks[i].number) + ".wav'>Track " + String(tracks[i].number) + "</a></li>";
@@ -307,9 +339,10 @@ static void registerWithPi() {
   String safeName = friendlyName;
   safeName.replace("\\", "\\\\"); safeName.replace("\"", "\\\"");
   safeName.replace("\n", " "); safeName.replace("\r", " ");
-  String json = "{\"sourceId\":\"" + sourceId + "\",\"name\":\"" + safeName +
-                "\",\"kind\":\"cd\",\"status\":\"" + (n ? String("ready") : String("no_disc")) +
-                "\",\"port\":8080,\"tracks\":[";
+  String json = "{\\\"sourceId\\\":\\\"" + sourceId + "\\",\\\"name\\\":\\\"" + safeName +
+                "\\",\\\"kind\\\":\\\"cd\\\",\\\"status\\\":\\\"" + (n ? String("ready") : String("no_disc")) +
+                "\\",\\\"bootSession\\\":\\\"" + String(bootSession) + "\\",\\\"discRevision\\\":" +
+                String(discRevision) + ",\\\"port\\\":8080,\\\"tracks\\\":[";
   for (size_t i = 0; i < n; i++) {
     if (i) json += ',';
     json += String(tracks[i].number);
@@ -337,6 +370,9 @@ void setup() {
   if (!tocMutex || !stateMutex) { Serial.println("Mutex allocation failed"); return; }
   gatewayIP = PI_GATEWAY_IP;
   friendlyName = SOURCE_DISPLAY_NAME;
+  // New nonce on every power-on, unchanged during normal heartbeats.
+  snprintf(bootSession, sizeof bootSession, "%08lx%08lx",
+           (unsigned long)esp_random(), (unsigned long)esp_random());
   sourceId = "cd-" + String((uint32_t)(ESP.getEfuseMac() >> 24), HEX) +
              String((uint32_t)(ESP.getEfuseMac() & 0xFFFFFFULL), HEX);
 
