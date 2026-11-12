@@ -1,6 +1,6 @@
 # NetworkCDProbe — Arduino IDE only
 
-**Status: SOURCE-ONLY DRAFT. NOT COMPILED WITH ARDUINO IDE, NOT UPLOADED, NOT TESTED ON THE LITE-ON.**
+**Status (2026-11-11): USER-VERIFIED HARDWARE MILESTONE — Arduino IDE compilation/upload succeeded, Lite-On audio-CD TOC detected and displayed over the XIAO's Wi-Fi status page (11 audio tracks in supplied screenshot). CD audio extraction/streaming NOT YET IMPLEMENTED OR VERIFIED.**
 
 This Arduino sketch replaces the earlier ESP-IDF **flashing workflow**, not the tested code base. It uses the **same USB MSC/SCSI driver** ported into an Arduino sketch library folder. No separate ESP-IDF installation, CLI, three-BIN flashing, or firmware flasher should be needed for this sketch.
 
@@ -39,12 +39,12 @@ This is an Arduino IDE test sketch, **not yet a network music player**. It does 
 - Original optical-disc USB SCSI code: https://github.com/julpage/ESP32_CD_Player , upstream commit `04656eee5d6cfc3a6fab413a28b58a21fe299dca` (WTFPL v2).
 - Earlier `cd-source/` ESP-IDF probe was compiled successfully under ESP-IDF v5.2.8 but that does **not** establish Arduino sketch compatibility.
 
-## Outstanding validation
+## Hardware result and outstanding validation
 
-- Arduino IDE compile and link.
-- Confirm S3 USB Host stack is available in selected board package.
-- Confirm the Lite-On USB device enumeration and SCSI command compatibility.
-- Confirm TOC durations and disc insertion/removal reporting.
-- Confirm diagnostics web page and rescan work with USB host active.
+- **PASS from user evidence:** Arduino IDE 2.0.14 compiled the sketch, uploaded successfully to XIAO ESP32-S3 using an esptool `--no-stub` override, and ran with the Lite-On USB CD drive attached.
+- **PASS from screenshot:** Audio CD identified: 11 audio tracks and 0 data tracks; track numbers, durations and LBA displayed at `http://192.168.4.1`.
+- **Unverified:** disc ejection/reinsertion detection; Rescan button behavior; TOC duration accuracy against known disc; audio sectors; network PCM delivery and Pi/MPD integration.
+
+**Upload workaround:** Core 2.0.14 must be preserved for a separate working CRT visualizer project. On this XIAO, Arduino IDE uploads initially failed after `Stub running...`; a reversible `platform.local.txt` overriding the upload pattern with `--no-stub` enabled successful flashing. See `docs/PROGRESS.md` for exact context. This is a user-reported fix, not a universal recommendation for other boards.
 
 No firmware build, package, or release is authorized by this source-only change.
