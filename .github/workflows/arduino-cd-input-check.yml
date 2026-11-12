@@ -1,8 +1,7 @@
 name: Lite-On CD authorized compilation and delivery gate
 
-# An ordinary source change cannot trigger builds. A deliberately committed
-# request marker is the chat-controlled dispatch path, used only after the
-# user explicitly authorizes a build in conversation.
+# Only a dedicated request marker commit can trigger a chat-authorized build.
+# Ordinary source/documentation changes do not start the workflow.
 on:
   push:
     branches:
@@ -30,85 +29,12 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 2
-      - name: Enforce explicit chat build-request marker for push dispatch
+      - name: Enforce explicit authorization marker for chat-controlled builds
         if: ${{ github.event_name == 'push' }}
         run: |
           set -euo pipefail
           marker=cd-arduino/ci/authorized-build-request.txt
-          grep -Eq '^BUILD_AND_PACKAGE [A-Za-z0-9_-]{8,80}
-      - uses: arduino/setup-arduino-cli@v2
-      - name: Install pinned Arduino ESP32 core
-        run: |
-          set -euo pipefail
-          URL=https://espressif.github.io/arduino-esp32/package_esp32_index.json
-          arduino-cli core update-index --additional-urls "$URL"
-          arduino-cli core install esp32:esp32@2.0.14 --additional-urls "$URL"
-      - name: Compile exact delivered sketch
-        run: |
-          set -euo pipefail
-          cp cd-arduino/HouseAudioCDInput/LocalNetworkConfig.example.h cd-arduino/HouseAudioCDInput/LocalNetworkConfig.h
-          arduino-cli compile --fqbn esp32:esp32:XIAO_ESP32S3 --warnings all cd-arduino/HouseAudioCDInput
-      - name: Validate package, pinned source, and placeholder credentials
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          from zipfile import ZipFile, ZIP_DEFLATED
-          import hashlib, json, subprocess
-          source = Path('cd-arduino/HouseAudioCDInput')
-          path = Path('HouseMusic_XIAO_CD_USB_Recovery.zip')
-          required = [
-              'HouseAudioCDInput.ino',
-              'LocalNetworkConfig.h',
-              'src/HouseAudioInputTransport.h',
-              'src/usb_host_msc/usbhost_driver.c',
-              'src/usb_host_msc/usbhost_driver.h',
-              'src/usb_host_msc/usbhost_msc_cmd.c',
-              'src/usb_host_msc/usbhost_msc_cmd.h',
-              'src/usb_host_msc/usbhost_scsi_cmd.c',
-              'src/usb_host_msc/usbhost_scsi_cmd.h',
-          ]
-          source_files = [p for p in source.rglob('*') if p.is_file() and p.name != '.gitignore']
-          actual = {str(p.relative_to(source)) for p in source_files}
-          assert actual == set(required) | {'LocalNetworkConfig.example.h'}, ('Unexpected source contents', sorted(actual))
-          config = (source / 'LocalNetworkConfig.h').read_bytes()
-          example = (source / 'LocalNetworkConfig.example.h').read_bytes()
-          assert config == example, 'Config differs from placeholder'
-          assert b'YOUR_' in example or b'REPLACE' in example or b'YOUR' in example, 'Missing clear placeholder'
-          source_sha = subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
-          manifest = {}
-          with ZipFile(path, 'w', compression=ZIP_DEFLATED) as archive:
-              for rel in required:
-                  data = (source / rel).read_bytes()
-                  archive.writestr('HouseAudioCDInput/' + rel, data)
-                  manifest[rel] = hashlib.sha256(data).hexdigest()
-              archive.writestr('SOURCE_SHA.txt', source_sha + '\n')
-          with ZipFile(path) as archive:
-              assert archive.testzip() is None, 'Corrupt ZIP'
-              assert set(archive.namelist()) == {'HouseAudioCDInput/' + p for p in required} | {'SOURCE_SHA.txt'}
-              for rel, digest in manifest.items():
-                  assert hashlib.sha256(archive.read('HouseAudioCDInput/' + rel)).hexdigest() == digest
-              assert archive.read('SOURCE_SHA.txt').decode().strip() == source_sha
-          Path('SOURCE_MANIFEST.json').write_text(json.dumps({
-              'source_sha': source_sha,
-              'arduino_core': 'esp32:esp32@2.0.14',
-              'board': 'esp32:esp32:XIAO_ESP32S3',
-              'hardware_verified': False,
-              'files_sha256': manifest,
-              'zip_sha256': hashlib.sha256(path.read_bytes()).hexdigest()
-          }, indent=2) + '\n')
-          PY
-      - name: Upload verified pair
-        uses: actions/upload-artifact@v4
-        with:
-          name: HouseMusic_XIAO_CD_USB_Recovery
-          path: |
-            HouseMusic_XIAO_CD_USB_Recovery.zip
-            SOURCE_MANIFEST.json
-          if-no-files-found: error
- "$marker"
-          # Only the marker itself may be changed in an authorized request
-          # commit; this separates a request from ordinary firmware commits.
+          grep -Eq '^BUILD_AND_PACKAGE [A-Za-z0-9_-]{8,80}$' "$marker"
           test "$(git diff-tree --no-commit-id --name-only -r HEAD)" = "$marker"
       - name: Record source revision
         run: |
