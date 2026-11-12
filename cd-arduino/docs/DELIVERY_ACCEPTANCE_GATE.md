@@ -32,3 +32,12 @@ This is a project checkpoint, not a claim that the firmware is fixed. It applies
 ## Delivery status for current branch
 - **Not hardware verified.** Any previous CI run at a different commit does not validate the latest delivery SHA.
 - **Previously delivered archive equivalence to compiled revision remains unverified**, and must not be claimed complete.
+
+
+## Automated enforcement status (2026-11-12)
+
+- The updated `.github/workflows/arduino-cd-input-check.yml` removes automatic push-triggered builds and packages. It requires a manually authorized workflow invocation with the input `BUILD_AND_PACKAGE`.
+- A successful job must compile on the pinned Arduino core and verify every ZIP file against the same checkout, with an embedded commit SHA and a SHA-256 manifest. Failing checks prevent artifact upload.
+- **Not activated or proven:** GitHub requires a `workflow_dispatch` workflow to exist on the repository default branch for manual invocation. The current default `main` branch does **not** have this workflow. Therefore the new gate currently exists as source configuration on the development branch, not as a demonstrated working CI gate. Do not claim otherwise or distribute another release until the permitted workflow is made runnable and passed for the exact source revision.
+- This workflow cannot enforce hardware acceptance, prevent someone manually attaching a different archive, or enforce the assistant's wording. Those remain separately documented release checks.
+- Do not merge this into main, start any workflow, compile, or package without explicit user authorization for that work.
