@@ -2,13 +2,14 @@
  * House Audio CD Input: USB audio-CD source node (Arduino IDE 2.0.14).
  * Uses the tested XIAO ESP32-S3 USB MSC/SCSI driver + reusable HTTP WAV transport.
  * This is a new, untested source, not a replacement for the proven NetworkCDProbe.
- * No ESPHome dependency, no prebuilt .bin flashing; use the normal Arduino Upload.
+ * Direct home Wi-Fi only; set credentials in LocalNetworkConfig.h before uploading.
+ * No ESPHome dependency; use the normal Arduino IDE Upload.
  */
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WebServer.h>
 #include <HTTPClient.h>
-#include <Preferences.h>
+#include "LocalNetworkConfig.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
@@ -19,20 +20,16 @@ extern "C" {
 }
 #include "src/HouseAudioInputTransport.h"
 
-static constexpr char AP_NAME[] = "House-CD-Setup";
-static constexpr char AP_PASSWORD[] = "cdprobe1633";
 static constexpr uint16_t GATEWAY_PORT = 8768;
 static WebServer ui(80);
-static Preferences prefs;
 static SemaphoreHandle_t tocMutex;
 static SemaphoreHandle_t stateMutex;
 static AudioInputTrack discTracks[99];
 static size_t discTrackCount = 0;
 static uint8_t tocBuffer[4 + 8 * 100];
 static char statusText[128] = "Starting";
-static String wifiName, wifiPassword, gatewayIP, friendlyName, sourceId;
-static bool restartPending = false;
-static uint32_t restartRequestedAt = 0;
+static String gatewayIP, friendlyName, sourceId;
+static int lastRegisterHTTP = -999; // -999 means not attempted yet
 static uint32_t lastRegister = 0, lastReconnect = 0;
 static volatile bool rescan = false;
 
@@ -155,33 +152,15 @@ static void statusPage() {
     page += "<li><a href='http://" + WiFi.localIP().toString() + ":8080/track/" + String(tracks[i].number) + ".wav'>Track " + String(tracks[i].number) + "</a></li>";
   }
   page += F("</ul><form method='POST' action='/rescan'><button>Rescan CD</button></form>");
-  page += F("<h3>Network settings</h3><form method='POST' action='/configure'>"
-            "<p>Home Wi-Fi SSID <input name='ssid' value='");
-  page += htmlEscape(wifiName); page += F("'></p><p>Wi-Fi password <input type='password' name='password' placeholder='Keep existing if blank'></p>"
-       "<p>Raspberry Pi IP <input name='gateway' value='");
-  page += htmlEscape(gatewayIP); page += F("'></p><p>Friendly name <input name='name' value='");
-  page += htmlEscape(friendlyName); page += F("'></p><button>Save & restart</button></form>");
+  page += F("<h3>Network</h3><p>Home Wi-Fi SSID: ");
+  page += htmlEscape(String(HOME_WIFI_SSID));
+  page += F("</p><p>Pi registration: ");
+  if (lastRegisterHTTP == 200) page += F("OK (HTTP 200)");
+  else if (lastRegisterHTTP == -999) page += F("not attempted yet");
+  else page += "HTTP " + String(lastRegisterHTTP);
+  page += F("</p><p>Wi-Fi settings are compiled locally from LocalNetworkConfig.h.</p>");
   page += F("<p>CD audio input is experimental. It does not automatically change House Music playback.</p></body></html>");
   ui.send(200, "text/html", page);
-}
-
-static void saveSettings() {
-  String ssid = ui.arg("ssid"), pass = ui.arg("password");
-  String gateway = ui.arg("gateway"), name = ui.arg("name");
-  ssid.trim(); gateway.trim(); name.trim();
-  IPAddress ip;
-  if (ssid.length() < 1 || ssid.length() > 32 || !ip.fromString(gateway) ||
-      name.length() < 1 || name.length() > 60) {
-    ui.send(400, "text/plain", "Provide a Wi-Fi SSID, a valid Pi IPv4 address and a friendly name");
-    return;
-  }
-  prefs.putString("ssid", ssid);
-  if (pass.length()) prefs.putString("password", pass);
-  prefs.putString("gateway", gateway);
-  prefs.putString("name", name);
-  ui.send(200, "text/plain", "Saved. Restarting; connect to home Wi-Fi to see input on Pi.");
-  restartPending = true;
-  restartRequestedAt = millis();
 }
 
 static void registerWithPi() {
@@ -206,8 +185,11 @@ static void registerWithPi() {
   if (http.begin(net, url)) {
     http.addHeader("Content-Type", "application/json");
     int result = http.POST(json);
+    lastRegisterHTTP = result;
     if (result != 200) Serial.printf("[CD] Pi registration HTTP %d\n", result);
     http.end();
+  } else {
+    lastRegisterHTTP = -998; // unable to start HTTP connection
   }
 }
 
@@ -216,19 +198,14 @@ void setup() {
   tocMutex = xSemaphoreCreateMutex();
   stateMutex = xSemaphoreCreateMutex();
   if (!tocMutex || !stateMutex) { Serial.println("Mutex allocation failed"); return; }
-  prefs.begin("house-source", false);
-  wifiName = prefs.getString("ssid", "");
-  wifiPassword = prefs.getString("password", "");
-  gatewayIP = prefs.getString("gateway", "");
-  friendlyName = prefs.getString("name", "CD Player");
+  gatewayIP = PI_GATEWAY_IP;
+  friendlyName = SOURCE_DISPLAY_NAME;
   sourceId = "cd-" + String((uint32_t)(ESP.getEfuseMac() >> 24), HEX) +
              String((uint32_t)(ESP.getEfuseMac() & 0xFFFFFFULL), HEX);
 
-  WiFi.mode(WIFI_AP_STA);
-  WiFi.softAP(AP_NAME, AP_PASSWORD);
-  if (!wifiName.isEmpty()) WiFi.begin(wifiName.c_str(), wifiPassword.c_str());
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(HOME_WIFI_SSID, HOME_WIFI_PASSWORD);
   ui.on("/", HTTP_GET, statusPage);
-  ui.on("/configure", HTTP_POST, saveSettings);
   ui.on("/rescan", HTTP_POST, []() {
     rescan = true;
     ui.sendHeader("Location", "/"); ui.send(303, "text/plain", "Rescanning");
@@ -243,10 +220,9 @@ void setup() {
 
 void loop() {
   ui.handleClient();
-  if (restartPending && millis() - restartRequestedAt > 800) ESP.restart();
   if (millis() - lastReconnect > 10000) {
     lastReconnect = millis();
-    if (WiFi.status() != WL_CONNECTED && !wifiName.isEmpty()) WiFi.reconnect();
+    if (WiFi.status() != WL_CONNECTED) WiFi.reconnect();
   }
   if (millis() - lastRegister > 5000) {
     lastRegister = millis();
