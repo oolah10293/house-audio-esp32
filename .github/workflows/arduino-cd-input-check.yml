@@ -90,12 +90,12 @@ jobs:
                   data = (source / rel).read_bytes()
                   archive.writestr('HouseAudioCDInput/' + rel, data)
                   manifest[rel] = hashlib.sha256(data).hexdigest()
-              archive.writestr('SOURCE_SHA.txt', source_sha + '\\n')
+              archive.writestr('SOURCE_SHA.txt', source_sha + '\n')
               archive.writestr('VERSION.txt',
-                  'House Music CD Player\\n'
-                  + 'Source commit: ' + source_sha + '\\n'
-                  + 'Automatic playback identity: bootSession/discRevision present\\n'
-                  + 'Hardware acceptance: NOT VERIFIED\\n')
+                  'House Music CD Player\n'
+                  + 'Source commit: ' + source_sha + '\n'
+                  + 'Automatic playback identity: bootSession/discRevision present\n'
+                  + 'Hardware acceptance: NOT VERIFIED\n')
           with ZipFile(path) as archive:
               assert archive.testzip() is None, 'Corrupt ZIP'
               assert set(archive.namelist()) == {'HouseAudioCDInput/' + p for p in required} | {'SOURCE_SHA.txt','VERSION.txt'}
