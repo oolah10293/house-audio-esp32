@@ -273,7 +273,7 @@ esp_err_t usbhost_scsi_readCD(uint32_t lba, uint8_t *responData, uint32_t *trans
     return err;
 }
 
-// MMC-4 6.42 SET CD SPEED Command
+// MMC-4 6.42 SET CD SPEED Command (readSpeed in kB/s, e.g. 706 ~= 4x)
 esp_err_t usbhost_scsi_setCDSpeed(uint16_t readSpeed)
 {
     xSemaphoreTake(scsiExeLock, portMAX_DELAY);
@@ -283,8 +283,8 @@ esp_err_t usbhost_scsi_setCDSpeed(uint16_t readSpeed)
 
     cbwcb[0] = 0xbb;                                           // Operation Code (BBh)
     cbwcb[1] = 0x00;                                           // Rotational Control: CLV and non-pure CAV
-    *((uint16_t *)(cbwcb + 2)) = __builtin_bswap16(readSpeed); // Logical Unit Read Speed (bytes/sec)
-    *((uint16_t *)(cbwcb + 4)) = __builtin_bswap16(0);         // Logical Unit Write Speed (bytes/sec)
+    *((uint16_t *)(cbwcb + 2)) = __builtin_bswap16(readSpeed); // Logical Unit Read Speed (kB/sec)
+    *((uint16_t *)(cbwcb + 4)) = __builtin_bswap16(0);         // Logical Unit Write Speed (kB/sec)
 
     uint32_t requireLen = 0;
 
