@@ -235,7 +235,7 @@ static void discTask(void *) {
           esp_err_t startErr = usbhost_scsi_startStopUnit(false, true);
           char recovery[180];
           snprintf(recovery, sizeof recovery,
-                   "Drive start attempt %lu: %s (0x%X); last %s",
+                   "Drive start attempt %lu: %.32s (0x%X); last %.70s",
                    (unsigned long)attempts, esp_err_to_name(startErr),
                    (unsigned)startErr, note);
           setScsiDiagnostic(recovery, failures, attempts);
