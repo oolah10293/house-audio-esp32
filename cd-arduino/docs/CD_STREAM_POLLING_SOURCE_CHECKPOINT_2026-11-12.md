@@ -21,11 +21,23 @@ Existing individual-command `scsiExeLock` remains in place; new stream lease add
 Compile exact committed revision; inspect diagnostics; test CD detection, complete streamed playback over multiple tracks, normal next/previous, eject/reinsert and changed disc, manual rescan, non-disc MP3 restoration, and deliberate transport failures. Monitor USB serial READ CD details and failures of BOT reset/endpoint clear. Avoid stronger auto-reset/re-enumeration until evidence supports it.
 
 
-## Next revision plan (planning only; no implementation or build authorization)
-Add both **bounded READ CD retries** and **read-speed control** to the LiteOn CD firmware:
+## Next revision implementation (source committed; build not authorized)
+Both **bounded READ CD retries** and **read-speed control** have now been implemented in the same LiteOn CD firmware source branch:
 - Retry failed or short CD audio reads a limited number of times, record the failing LBA and transport/SCSI error, and avoid indefinite hangs. When retries are exhausted, report the failure and let another track be selected without erasing the disc list solely because of a read failure.
 - Request a moderate audio-CD read speed using the existing `usbhost_scsi_setCDSpeed()` command (initial target 4× for hardware evaluation). Verify whether the LiteOn honors it and whether streaming remains fast enough. Speed is an operating parameter, not an assumed cure for read failures.
 - Coordinate read retries, drive commands, and speed setting under the existing stream/polling synchronization. Preserve prior CD autoplay, next/previous, and Pi library restoration behavior.
 - Assess failure and recovery on the drive with hardware evidence; an ESP32 restart did **not** recover CD detection in the reported case.
 
-These are planned changes, not yet coded, compiled, packaged, or tested. Explicit authorization is required before a firmware build.
+### Implemented details
+- CD audio reader attempts each failed 8-sector READ CD operation at the **same LBA up to 3 times total**, with a **100ms gap** between failures; partial transfers are discarded and re-read, never appended. Logs report attempt number, LBA, expected/actual bytes, underlying error, recovered attempts and terminal REQUEST SENSE decoding when available.
+- A terminal failed read stops the current WAV response rather than filling missing PCM with fabricated audio; the HTTP server then remains available to accept another track. Because HTTP 200 and Content-Length are already sent before audio extraction, the Pi will see a truncated transfer, which remains an integration behavior to validate on hardware.
+- A successful TOC read requests **706 kB/s (~4× CD)** via the existing MMC SET CD SPEED command. It runs under the background SCSI poll lease, not inside active streaming, retries on subsequent TOC refreshes if rejected, and reapplies if discRevision changes. Failed speed requests are diagnostic-only and do not prevent playback. The drive may ignore the speed hint.
+- Constants `CD_READ_MAX_ATTEMPTS`, `CD_READ_RETRY_DELAY_MS` and `CD_READ_SPEED_KBPS` are editable at the top of the sketch; there is no web UI for them.
+- The earlier committed changes (full-stream poll exclusion, TOC-list preservation, improved BOT recovery logging) remain in the branch.
+
+### Source checkpoints
+- `7602a5418c5c507913b39e9bd2bcf0a826460057`: retries and initial speed command.
+- `706b08d773bd5ec7e4f17a066550554f150369a9`: apply speed setting again when TOC signals a different disc.
+- `31c93c6c8b02a59fef51e94438c2f24e8199d0c2`: correct SET CD SPEED unit documentation (kB/s).
+
+**Verification status:** These are GitHub source changes only. Not compiled, packaged, flashed or tested on LiteOn hardware; no build authorization. Read-speed compliance and the ability to recover from damaged CDs remain unverified. Do not report the problem solved until physical tests demonstrate it. Explicit authorization remains required for compiling/packaging.
