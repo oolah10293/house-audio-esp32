@@ -1,60 +1,99 @@
-name: Arduino IDE CD input compile check
+name: Lite-On CD authorized compilation and delivery gate
 
+# No push trigger: an ordinary source edit is never authorization to build/package.
 on:
-  push:
-    branches:
-      - feature/reusable-input-node
-      - fix/liteon-usb-transport-recovery
-      - fix/liteon-usb-transport-recovery
-    paths:
-      - 'cd-arduino/HouseAudioCDInput/**'
-      - '.github/workflows/arduino-cd-input-check.yml'
   workflow_dispatch:
+    inputs:
+      authorization:
+        description: "Enter BUILD_AND_PACKAGE after the user explicitly authorizes this release"
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 jobs:
-  compile-arduino-esp32-2_0_14:
+  compile-and-verify:
+    if: ${{ inputs.authorization == 'BUILD_AND_PACKAGE' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout exact invoked revision
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Record source revision
+        run: |
+          set -euo pipefail
+          echo "SOURCE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          git status --porcelain
       - uses: arduino/setup-arduino-cli@v2
-      - name: Install exact user ESP32 core
+      - name: Install pinned Arduino ESP32 core
         run: |
           set -euo pipefail
           URL=https://espressif.github.io/arduino-esp32/package_esp32_index.json
           arduino-cli core update-index --additional-urls "$URL"
           arduino-cli core install esp32:esp32@2.0.14 --additional-urls "$URL"
-      - name: Compile HouseAudioCDInput on XIAO ESP32-S3
+      - name: Compile exact delivered sketch
         run: |
           set -euo pipefail
           cp cd-arduino/HouseAudioCDInput/LocalNetworkConfig.example.h cd-arduino/HouseAudioCDInput/LocalNetworkConfig.h
           arduino-cli compile --fqbn esp32:esp32:XIAO_ESP32S3 --warnings all cd-arduino/HouseAudioCDInput
-      - name: Package current repaired CD source
+      - name: Validate package, pinned source, and placeholder credentials
         run: |
           set -euo pipefail
-          mkdir -p delivery/HouseAudioCDInput
-          cp -R cd-arduino/HouseAudioCDInput/. delivery/HouseAudioCDInput/
-          cp cd-arduino/HouseAudioCDInput/LocalNetworkConfig.example.h delivery/HouseAudioCDInput/LocalNetworkConfig.h
-          cd delivery
-          zip -r -q ../HouseMusic_XIAO_CD_Transport_Recovery.zip HouseAudioCDInput
-      - uses: actions/upload-artifact@v4
-        with:
-          name: HouseMusic_XIAO_CD_Transport_Recovery
-          path: HouseMusic_XIAO_CD_Transport_Recovery.zip
-          if-no-files-found: error
-      - name: Package revised Lite-On Arduino sketch
-        run: |
-          set -euo pipefail
-          mkdir -p delivery/HouseAudioCDInput
-          cp -R cd-arduino/HouseAudioCDInput/. delivery/HouseAudioCDInput/
-          cp cd-arduino/HouseAudioCDInput/LocalNetworkConfig.example.h delivery/HouseAudioCDInput/LocalNetworkConfig.h
-          cd delivery
-          zip -q -r ../HouseMusic_XIAO_CD_USB_Recovery.zip HouseAudioCDInput
-      - uses: actions/upload-artifact@v4
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile, ZIP_DEFLATED
+          import hashlib, json, subprocess
+          source = Path('cd-arduino/HouseAudioCDInput')
+          path = Path('HouseMusic_XIAO_CD_USB_Recovery.zip')
+          required = [
+              'HouseAudioCDInput.ino',
+              'LocalNetworkConfig.h',
+              'src/HouseAudioInputTransport.h',
+              'src/usb_host_msc/usbhost_driver.c',
+              'src/usb_host_msc/usbhost_driver.h',
+              'src/usb_host_msc/usbhost_msc_cmd.c',
+              'src/usb_host_msc/usbhost_msc_cmd.h',
+              'src/usb_host_msc/usbhost_scsi_cmd.c',
+              'src/usb_host_msc/usbhost_scsi_cmd.h',
+          ]
+          source_files = [p for p in source.rglob('*') if p.is_file() and p.name != '.gitignore']
+          actual = {str(p.relative_to(source)) for p in source_files}
+          assert actual == set(required) | {'LocalNetworkConfig.example.h'}, ('Unexpected source contents', sorted(actual))
+          config = (source / 'LocalNetworkConfig.h').read_bytes()
+          example = (source / 'LocalNetworkConfig.example.h').read_bytes()
+          assert config == example, 'Config differs from placeholder'
+          assert b'YOUR_' in example or b'REPLACE' in example or b'YOUR' in example, 'Missing clear placeholder'
+          source_sha = subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+          manifest = {}
+          with ZipFile(path, 'w', compression=ZIP_DEFLATED) as archive:
+              for rel in required:
+                  data = (source / rel).read_bytes()
+                  archive.writestr('HouseAudioCDInput/' + rel, data)
+                  manifest[rel] = hashlib.sha256(data).hexdigest()
+              archive.writestr('SOURCE_SHA.txt', source_sha + '\n')
+          with ZipFile(path) as archive:
+              assert archive.testzip() is None, 'Corrupt ZIP'
+              assert set(archive.namelist()) == {'HouseAudioCDInput/' + p for p in required} | {'SOURCE_SHA.txt'}
+              for rel, digest in manifest.items():
+                  assert hashlib.sha256(archive.read('HouseAudioCDInput/' + rel)).hexdigest() == digest
+              assert archive.read('SOURCE_SHA.txt').decode().strip() == source_sha
+          Path('SOURCE_MANIFEST.json').write_text(json.dumps({
+              'source_sha': source_sha,
+              'arduino_core': 'esp32:esp32@2.0.14',
+              'board': 'esp32:esp32:XIAO_ESP32S3',
+              'hardware_verified': False,
+              'files_sha256': manifest,
+              'zip_sha256': hashlib.sha256(path.read_bytes()).hexdigest()
+          }, indent=2) + '\n')
+          PY
+      - name: Upload verified pair
+        uses: actions/upload-artifact@v4
         with:
           name: HouseMusic_XIAO_CD_USB_Recovery
-          path: HouseMusic_XIAO_CD_USB_Recovery.zip
+          path: |
+            HouseMusic_XIAO_CD_USB_Recovery.zip
+            SOURCE_MANIFEST.json
           if-no-files-found: error
