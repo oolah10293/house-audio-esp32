@@ -4,7 +4,7 @@ This is a project checkpoint, not a claim that the firmware is fixed. It applies
 
 ## Filename and identity gate — mandatory
 
-- Only `HouseMusic_CD_Player.zip` for the Lite-On ESP32 package; only `HouseMusic_CD_Pi.zip` for the paired Pi package.
+- Only `HouseMusic_LiteOn_SOHW-1633SX.zip` for the Lite-On ESP32 package; only `HouseMusic_CD_Pi.zip` for the paired Pi package.
 - Reject a delivered sketch if the actual ZIP lacks `bootSession` or `discRevision`, or contains the old webpage text `It does not automatically change House Music playback.`
 - Put `VERSION.txt` in the package with the exact compiled commit SHA, feature identity and hardware-test status. Never substitute an old v0.2 sketch under a new ZIP name.
 - Read the top of `README.md` and this gate before each future delivery. The GitHub CI workflow checks the ESP ZIP identity and name automatically.
