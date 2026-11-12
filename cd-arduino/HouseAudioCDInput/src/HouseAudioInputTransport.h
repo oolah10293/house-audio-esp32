@@ -1,0 +1,118 @@
+#pragma once
+/* Reusable, hardware-independent audio input transport for Arduino-ESP32.
+ * All sampling and block parameters are provided by the hardware adapter.
+ * Current milestone supports finite PCM tracks, not indefinite line-in capture.
+ * Each source provides tracks, PCM format, and read-block callbacks; no hardware IDs.
+ */
+#include <Arduino.h>
+#include <WiFi.h>
+
+struct AudioInputTrack {
+  uint8_t number;
+  uint32_t startBlock; // inclusive device-defined PCM block index
+  uint32_t endBlock;   // exclusive
+};
+using AudioTrackSnapshot = size_t (*)(AudioInputTrack*, size_t);
+using AudioBlockReader = bool (*)(uint32_t, uint32_t, uint8_t*, size_t);
+struct AudioPcmFormat {
+  uint32_t sampleRate;
+  uint16_t channels;
+  uint16_t bitsPerSample;
+  uint32_t bytesPerBlock;
+};
+
+static AudioTrackSnapshot audioSnapshot;
+static AudioBlockReader audioReader;
+static AudioPcmFormat audioFormat;
+static WiFiServer audioServer(8080);
+
+static bool audioWriteAll(WiFiClient &client, const uint8_t *data, size_t count) {
+  unsigned long lastProgress = millis();
+  while (count) {
+    if (!client.connected()) return false;
+    size_t wrote = client.write(data, count);
+    if (wrote) {
+      data += wrote;
+      count -= wrote;
+      lastProgress = millis();
+    } else {
+      if (millis() - lastProgress > 4000) return false;
+      delay(2);
+    }
+  }
+  return true;
+}
+
+static void audioLE16(uint8_t *p, uint16_t v) { p[0] = v & 255; p[1] = v >> 8; }
+static void audioLE32(uint8_t *p, uint32_t v) {
+  p[0] = v & 255; p[1] = (v >> 8) & 255;
+  p[2] = (v >> 16) & 255; p[3] = v >> 24;
+}
+
+static void audioWavHeader(uint8_t *h, uint32_t pcmBytes) {
+  const uint16_t blockAlign = audioFormat.channels * (audioFormat.bitsPerSample / 8);
+  memcpy(h, "RIFF", 4); audioLE32(h + 4, 36 + pcmBytes);
+  memcpy(h + 8, "WAVEfmt ", 8); audioLE32(h + 16, 16);
+  audioLE16(h + 20, 1); audioLE16(h + 22, audioFormat.channels);
+  audioLE32(h + 24, audioFormat.sampleRate); audioLE32(h + 28, audioFormat.sampleRate * blockAlign);
+  audioLE16(h + 32, blockAlign); audioLE16(h + 34, audioFormat.bitsPerSample);
+  memcpy(h + 36, "data", 4); audioLE32(h + 40, pcmBytes);
+}
+
+static void audioStreamTask(void *) {
+  static uint8_t pcm[8 * 2352]; // static buffer; validate block size before use
+  audioServer.begin();
+  for (;;) {
+    WiFiClient client = audioServer.available();
+    if (!client) { vTaskDelay(pdMS_TO_TICKS(20)); continue; }
+    client.setTimeout(1500);
+    String request = client.readStringUntil('\n');
+    bool head = request.startsWith("HEAD ");
+    int begin = request.indexOf("/track/");
+    int end = request.indexOf(".wav", begin);
+    int number = -1;
+    if ((request.startsWith("GET ") || head) && begin == 4 + (head ? 1 : 0) && end > begin + 7)
+      number = request.substring(begin + 7, end).toInt();
+    // Drain HTTP request headers so no pipelined bytes are mistaken as audio.
+    for (int j = 0; j < 40 && client.connected(); ++j) {
+      String line = client.readStringUntil('\n');
+      if (line == "\r" || line.isEmpty()) break;
+    }
+    AudioInputTrack list[99], track = {};
+    size_t n = audioSnapshot(list, 99);
+    bool found = false;
+    for (size_t i = 0; i < n; i++) if (list[i].number == number) { track = list[i]; found = true; break; }
+    if (!found || track.endBlock <= track.startBlock || audioFormat.bytesPerBlock == 0 ||
+        audioFormat.bytesPerBlock > sizeof pcm / 8 ||
+        (uint64_t)(track.endBlock - track.startBlock) * audioFormat.bytesPerBlock > 0xFFFFFF00ULL) {
+      client.print("HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+      client.stop();
+      continue;
+    }
+    uint32_t total = (track.endBlock - track.startBlock) * audioFormat.bytesPerBlock;
+    client.printf("HTTP/1.1 200 OK\r\nContent-Type: audio/wav\r\nContent-Length: %lu\r\nAccept-Ranges: none\r\nConnection: close\r\n\r\n",
+                  (unsigned long)(total + 44));
+    if (!head) {
+      uint8_t wav[44]; audioWavHeader(wav, total);
+      if (audioWriteAll(client, wav, sizeof wav)) {
+        for (uint32_t block = track.startBlock; block < track.endBlock; ) {
+          uint32_t blocks = (track.endBlock - block < 8) ? track.endBlock - block : 8;
+          if (!audioReader(block, blocks, pcm, sizeof pcm) ||
+              !audioWriteAll(client, pcm, blocks * audioFormat.bytesPerBlock)) {
+            Serial.printf("[Audio Input] source/read stream failed at block %lu\n", (unsigned long)block);
+            break;
+          }
+          block += blocks;
+        }
+      }
+    }
+    client.stop();
+  }
+}
+
+static void audioInputStartServer(AudioTrackSnapshot snapshot, AudioBlockReader reader, AudioPcmFormat format) {
+  audioSnapshot = snapshot;
+  audioReader = reader;
+  audioFormat = format;
+  xTaskCreatePinnedToCore(audioStreamTask, "audio-input", 8192, nullptr, 2, nullptr, 1);
+}
