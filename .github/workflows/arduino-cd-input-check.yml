@@ -28,4 +28,5 @@ jobs:
       - name: Compile HouseAudioCDInput on XIAO ESP32-S3
         run: |
           set -euo pipefail
+          cp cd-arduino/HouseAudioCDInput/LocalNetworkConfig.example.h cd-arduino/HouseAudioCDInput/LocalNetworkConfig.h
           arduino-cli compile --fqbn esp32:esp32:XIAO_ESP32S3 --warnings all cd-arduino/HouseAudioCDInput
