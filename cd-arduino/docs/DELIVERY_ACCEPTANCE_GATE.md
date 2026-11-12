@@ -41,3 +41,13 @@ This is a project checkpoint, not a claim that the firmware is fixed. It applies
 - **Not activated or proven:** GitHub requires a `workflow_dispatch` workflow to exist on the repository default branch for manual invocation. The current default `main` branch does **not** have this workflow. Therefore the new gate currently exists as source configuration on the development branch, not as a demonstrated working CI gate. Do not claim otherwise or distribute another release until the permitted workflow is made runnable and passed for the exact source revision.
 - This workflow cannot enforce hardware acceptance, prevent someone manually attaching a different archive, or enforce the assistant's wording. Those remain separately documented release checks.
 - Do not merge this into main, start any workflow, compile, or package without explicit user authorization for that work.
+
+
+## Chat-controlled GitHub Actions trigger (2026-11-12)
+
+- Active *configuration*, not yet end-to-end run-verified: the feature-branch workflow listens only for a push that changes `cd-arduino/ci/authorized-build-request.txt`. Ordinary firmware commits and documentation updates do not trigger it.
+- The assistant must obtain explicit user authorization to build/package **in conversation first**. That is sufficient: no GitHub UI action is required from the user. Following authorization, update the marker to `BUILD_AND_PACKAGE <unique-request-id>` in a single-file commit. GitHub Actions then checks that the commit changed **only** the marker and that it has the authorized format, before compiling and packaging.
+- The marker currently says `NOT_AUTHORIZED`. Setting up this trigger is not authorization to start a build. Do not edit the marker to the authorized format until authorization for that build is granted.
+- A successful run must be verified against the exact marker commit SHA, its compile step, its archive validation, and its artifact. A GitHub Actions success alone does not mean physical hardware is tested.
+- The assistant remains responsible for GitHub operations and source/package checks. The user owns physical installation, real-hardware testing, and acceptance. Never tell the user to navigate GitHub to start the process.
+- **Not yet proven:** The new push-controlled dispatch has not been triggered, and no release artifact has been created through it.
