@@ -1,5 +1,9 @@
 # House Audio ESP32
 
+## Delivery naming rule (user requirement)
+
+**Do not include `test` in user-facing ZIP filenames, installer/package names, or version labels.** The user explicitly rejected this naming. Use neutral names such as `HouseMusic_CD_Auto_Takeover_Pi.zip` and `HouseMusic_XIAO_CD_Auto.zip`. Record tested/untested status accurately in documentation and release notes instead of embedding it in the delivered filename or version. Deliver downloadable attachments directly in the chat; do not make the user navigate GitHub for files. This instruction applies to future development and handoffs.
+
 ESP32-S3 synchronized audio renderer firmware for the whole-house music system.
 
 Android acceptance status belongs in the [smb-music-player](https://github.com/oolah10293/smb-music-player) repository; Pi/session policy belongs in [house-audio-server](https://github.com/oolah10293/house-audio-server). This README records renderer hardware/firmware behavior and renderer-specific field evidence.
