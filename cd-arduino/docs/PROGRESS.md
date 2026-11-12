@@ -51,3 +51,9 @@ User log: `XIAO_ESP32S3`, Arduino core 2.0.14, esptool v4.5.1, COM25, sketch com
 A published Arduino Forum ESP32-S3 report with **the same exact message** describes resolution using esptool `--no-stub`, which stays with the ESP32 ROM loader rather than transferring/running a stub: https://forum.arduino.cc/t/esp32-s3-reset-required/1172767/2 and official Espressif docs https://docs.espressif.com/projects/esptool/en/latest/esp32/esptool/advanced-options.html . Workaround **not verified on user's board**.
 
 A reversible *Arduino IDE Upload-button* path is supported by Arduino's `platform.local.txt` override: place a `platform.local.txt` alongside installed 2.0.14 `platform.txt`, containing `tools.esptool_py.upload.pattern="{path}/{cmd}" --no-stub {upload.pattern_args}`; restart IDE; retry Blink first. This upload recipe was independently inspected in the upstream 2.0.14 tag. Modifies upload behavior for **all boards under the 2.0.14 ESP32 package**, so remove override following diagnosis/when not needed to preserve CRT visualizer setup. Neither workaround nor hardware result tested yet.
+
+## Upload success after `--no-stub` (2026-11-11)
+
+User reports **"done uploading"** immediately after being instructed to upload the built-in Arduino Blink sketch using the `platform.local.txt` esptool `--no-stub` override. This is **user-reported success**, not independently observed flashing logs; it strongly supports the stub being responsible for the previous flash failures. **Assume this refers to Blink, not the CD player**, unless user subsequently confirms otherwise.
+
+Next suggested step: reopen `NetworkCDProbe.ino` in Arduino IDE and upload with the now-working 115200/`--no-stub` configuration, without creating another binary or installer. CD-player sketch upload and optical drive enumeration are **not yet reported successful**. Preserve ESP32 Arduino core 2.0.14 used by the separate CRT visualizer.
