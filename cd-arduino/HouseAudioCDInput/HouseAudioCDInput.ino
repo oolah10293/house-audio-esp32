@@ -1,7 +1,7 @@
 /*
  * House Audio CD Input: USB audio-CD source node (Arduino IDE 2.0.14).
  * Uses the tested XIAO ESP32-S3 USB MSC/SCSI driver + reusable HTTP WAV transport.
- * v0.2: resilient disc readiness / SCSI sense diagnostics and guarded drive restart.
+ * v0.2 recovery + source-only auto-input event identity (unbuilt).
  * Existing CD audio streaming code remains unchanged.
  * Direct home Wi-Fi only; set credentials in LocalNetworkConfig.h before uploading.
  * No ESPHome dependency; use the normal Arduino IDE Upload.
@@ -328,7 +328,7 @@ static void statusPage() {
   else if (lastRegisterHTTP == -999) page += F("not attempted yet");
   else page += "HTTP " + String(lastRegisterHTTP);
   page += F("</p><p>Wi-Fi settings are compiled locally from LocalNetworkConfig.h.</p>");
-  page += F("<p>CD audio input is experimental. It does not automatically change House Music playback.</p></body></html>");
+  page += F("<p>Paired House Music firmware can automatically play a newly inserted disc. CD input is experimental.</p></body></html>");
   ui.send(200, "text/html", page);
 }
 
