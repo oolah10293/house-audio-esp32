@@ -1,0 +1,31 @@
+name: Arduino IDE CD input compile check
+
+on:
+  push:
+    branches:
+      - feature/reusable-input-node
+    paths:
+      - 'cd-arduino/HouseAudioCDInput/**'
+      - '.github/workflows/arduino-cd-input-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compile-arduino-esp32-2_0_14:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: arduino/setup-arduino-cli@v2
+      - name: Install exact user ESP32 core
+        run: |
+          set -euo pipefail
+          URL=https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core update-index --additional-urls "$URL"
+          arduino-cli core install esp32:esp32@2.0.14 --additional-urls "$URL"
+      - name: Compile HouseAudioCDInput on XIAO ESP32-S3
+        run: |
+          set -euo pipefail
+          arduino-cli compile --fqbn esp32:esp32:XIAO_ESP32S3 --warnings all cd-arduino/HouseAudioCDInput
