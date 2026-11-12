@@ -1,3 +1,2 @@
-# Authorized in chat on 2026-11-12 to build and package the complete LiteOn CD revision.
-# All firmware source changes precede this marker-only commit.
-BUILD_AND_PACKAGE 20261112-liteon-full-revision-02
+# Authorized build retry after compile failure at 7c037c0; obsolete unused-function warning fixed.
+BUILD_AND_PACKAGE 20261112-liteon-full-revision-03
