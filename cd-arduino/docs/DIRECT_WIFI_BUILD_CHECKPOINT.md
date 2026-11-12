@@ -10,7 +10,12 @@ The user explicitly authorized a new XIAO ESP32-S3 Arduino source build that **r
 - Status page on node port 80 reports its Wi-Fi IP and last Pi registration HTTP status.
 - Recovery: if USB host firmware hides the COM port, hold XIAO BOOT while plugging it into PC, then upload with the previously proven Arduino IDE 2.0.14 + `--no-stub` setup.
 - CI copies the example to local config header before compiling for `esp32:esp32:XIAO_ESP32S3` on exact core 2.0.14.
-- Tested locally: ten Python tests passed, including static network layout. Arduino CI result must be checked separately; **CD audio streaming and network registration are not yet verified on physical hardware**.
+- Tested locally: ten Python tests passed, including static network layout. Arduino CI passed (run 43156508427, on 2026-11-12, exact ESP32 core 2.0.14 / XIAO_ESP32S3); **CD audio streaming and network registration are not yet verified on physical hardware**.
 - Existing Pi gateway on port 8768 and working House Music service remain untouched.
 
 The user-facing source ZIP includes a placeholder `LocalNetworkConfig.h` ready for the user to edit with their private SSID/password before uploading.
+
+## Verified result
+
+- GitHub Actions compile job **PASSED**: https://github.com/oolah10293/house-audio-esp32/actions/runs/43156508427. The tested source matches the delivered Arduino sketch Git blob SHA `093c7d8c2efee4a9033cb26163dc60bcc7edf45e`. The CI job uses the placeholder config (the real home Wi-Fi credentials are only set on the user's PC).
+- Local Python tests: **10/10 passed**. Source bundle ZIP integrity check passed; physical XIAO and CD streaming remain unverified.
