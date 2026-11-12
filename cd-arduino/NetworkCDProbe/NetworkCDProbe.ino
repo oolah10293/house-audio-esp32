@@ -68,7 +68,7 @@ static void publish(const char *stage, const char *description, const char *trac
   copyText(currentStatus.tracks, sizeof currentStatus.tracks, tracks);
   xSemaphoreGive(statusLock);
 
-  Serial0.printf("[CD] %s: %s\n", stage, description ? description : "");
+  Serial.printf("[CD] %s: %s\n", stage, description ? description : "");
 }
 
 static void safeAscii(char *dst, size_t capacity, const uint8_t *src, size_t length) {
@@ -245,11 +245,11 @@ static void handlePage() {
 }
 
 void setup() {
-  Serial0.begin(115200);
+  Serial.begin(115200);
   delay(500);
   statusLock = xSemaphoreCreateMutex();
   if (statusLock == nullptr) {
-    Serial0.println("[CD] Fatal: status mutex allocation failed");
+    Serial.println("[CD] Fatal: status mutex allocation failed");
     return;
   }
 
@@ -258,7 +258,7 @@ void setup() {
   if (!WiFi.softAP(AP_NAME, AP_PASSWORD)) {
     publish("Wi-Fi AP error", "Could not start the diagnostic access point");
   } else {
-    Serial0.printf("[CD] Wi-Fi: %s, browse http://%s\n", AP_NAME,
+    Serial.printf("[CD] Wi-Fi: %s, browse http://%s\n", AP_NAME,
                    WiFi.softAPIP().toString().c_str());
   }
 
