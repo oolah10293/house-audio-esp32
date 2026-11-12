@@ -14,6 +14,9 @@ struct AudioInputTrack {
 };
 using AudioTrackSnapshot = size_t (*)(AudioInputTrack*, size_t);
 using AudioBlockReader = bool (*)(uint32_t, uint32_t, uint8_t*, size_t);
+// Optional source-specific lease covers the entire stream, not just each read block.
+using AudioStreamBegin = bool (*)();
+using AudioStreamEnd = void (*)();
 struct AudioPcmFormat {
   uint32_t sampleRate;
   uint16_t channels;
@@ -23,6 +26,8 @@ struct AudioPcmFormat {
 
 static AudioTrackSnapshot audioSnapshot;
 static AudioBlockReader audioReader;
+static AudioStreamBegin audioBegin;
+static AudioStreamEnd audioEnd;
 static AudioPcmFormat audioFormat;
 static WiFiServer audioServer(8080);
 static volatile bool audioStreamInProgress = false;
@@ -91,11 +96,19 @@ static void audioStreamTask(void *) {
       client.stop();
       continue;
     }
+    // Acquire USB/SCSI ownership before acknowledging a GET. A background
+    // disc poll must finish before the source begins a contiguous CD stream.
+    const bool leased = head || !audioBegin || audioBegin();
+    if (!leased) {
+      client.print("HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+      client.stop();
+      continue;
+    }
+    if (!head) audioStreamInProgress = true;
     uint32_t total = (track.endBlock - track.startBlock) * audioFormat.bytesPerBlock;
     client.printf("HTTP/1.1 200 OK\r\nContent-Type: audio/wav\r\nContent-Length: %lu\r\nAccept-Ranges: none\r\nConnection: close\r\n\r\n",
                   (unsigned long)(total + 44));
     if (!head) {
-      audioStreamInProgress = true;
       uint8_t wav[44]; audioWavHeader(wav, total);
       if (audioWriteAll(client, wav, sizeof wav)) {
         for (uint32_t block = track.startBlock; block < track.endBlock; ) {
@@ -109,14 +122,20 @@ static void audioStreamTask(void *) {
         }
       }
     }
-    audioStreamInProgress = false;
     client.stop();
+    if (!head) {
+      audioStreamInProgress = false;
+      if (audioEnd) audioEnd();
+    }
   }
 }
 
-static void audioInputStartServer(AudioTrackSnapshot snapshot, AudioBlockReader reader, AudioPcmFormat format) {
+static void audioInputStartServer(AudioTrackSnapshot snapshot, AudioBlockReader reader, AudioPcmFormat format,
+                                  AudioStreamBegin begin = nullptr, AudioStreamEnd end = nullptr) {
   audioSnapshot = snapshot;
   audioReader = reader;
+  audioBegin = begin;
+  audioEnd = end;
   audioFormat = format;
   xTaskCreatePinnedToCore(audioStreamTask, "audio-input", 8192, nullptr, 2, nullptr, 1);
 }
