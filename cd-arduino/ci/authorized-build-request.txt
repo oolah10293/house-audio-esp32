@@ -1,0 +1,4 @@
+# Build request control, not a build authorization.
+# This file must be updated ONLY following explicit user authorization in chat.
+# Authorized request format: BUILD_AND_PACKAGE <unique-request-id>
+NOT_AUTHORIZED
