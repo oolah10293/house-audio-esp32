@@ -54,6 +54,12 @@ A reversible *Arduino IDE Upload-button* path is supported by Arduino's `platfor
 
 ## Upload success after `--no-stub` (2026-11-11)
 
-User reports **"done uploading"** immediately after being instructed to upload the built-in Arduino Blink sketch using the `platform.local.txt` esptool `--no-stub` override. This is **user-reported success**, not independently observed flashing logs; it strongly supports the stub being responsible for the previous flash failures. **Assume this refers to Blink, not the CD player**, unless user subsequently confirms otherwise.
+User clarified that **NetworkCDProbe itself**, not Blink, was successfully uploaded through Arduino IDE using the `platform.local.txt` esptool `--no-stub` override. This is user-reported successful flashing, and the subsequently supplied screenshot independently establishes the sketch ran on hardware. The success strongly supports a stub-related cause for the previous flash failures.
 
 Next suggested step: reopen `NetworkCDProbe.ino` in Arduino IDE and upload with the now-working 115200/`--no-stub` configuration, without creating another binary or installer. CD-player sketch upload and optical drive enumeration are **not yet reported successful**. Preserve ESP32 Arduino core 2.0.14 used by the separate CRT visualizer.
+
+## Hardware milestone: Lite-On audio CD TOC displayed over Wi-Fi (2026-11-11)
+
+**Verified by user-supplied screenshot of http://192.168.4.1:** the flashed `NetworkCDProbe` sketch exposes its diagnostic web UI. The screen reads **"Status: Audio CD detected"**, **"Disc tracks 1-11: 11 audio, 0 data"**, and lists tracks 01–11 with audio flag, durations and LBA. First track displays `02:50.33 LBA 0`, final track displays `02:55.65 LBA 154700`. This is strong hardware-level evidence that the Seeed XIAO ESP32-S3 USB host and optical-drive SCSI READ TOC command work with the connected Lite-On and that the device's Wi-Fi AP/web server works. Hardware conditions and source of truth: screenshot supplied by user; no separate bench reproduction by assistant.
+
+**Milestone result:** CD detection, TOC reading/track enumeration, and local wireless status display **PASSED ON HARDWARE**. **Not yet verified:** SCSI READ CD audio sector extraction, PCM timing, transport over network to Raspberry Pi, MPD/Snapserver integration, house speaker playback. Do not claim this already plays audio. Preserve Arduino IDE as required programming/upload workflow and installed Espressif `esp32` core 2.0.14 used for CRT visualizer; no additional builds or packages authorized.
