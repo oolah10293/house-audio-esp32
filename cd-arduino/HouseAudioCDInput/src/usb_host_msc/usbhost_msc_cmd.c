@@ -53,9 +53,7 @@ esp_err_t usbhost_cmd_bulkOnlyMassStorageReset()
         .wLength = 0,
     };
 
-    usbhost_controlTransfer(&setupPack, 8);
-
-    return ESP_OK;
+    return usbhost_controlTransfer(&setupPack, 8);
 }
 
 // Get Max LUN
