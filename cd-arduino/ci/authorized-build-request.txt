@@ -1,5 +1,3 @@
-# Build request control, not a build authorization.
-# This file must be updated ONLY following explicit user authorization in chat.
-# Authorized request format: BUILD_AND_PACKAGE <unique-request-id>
-# Gate negative-test: 2026-11-12; no build authorized.
-NOT_AUTHORIZED
+# Authorized in chat to finish, compile, and package the automatic-playback CD integration.
+# Request records the exact source tree revision used by the workflow.
+BUILD_AND_PACKAGE 20261112-liteon-autoplay-01
