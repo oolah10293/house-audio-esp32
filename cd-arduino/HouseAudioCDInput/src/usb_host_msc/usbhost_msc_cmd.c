@@ -95,9 +95,11 @@ esp_err_t usbhost_cmd_cbwExecute(void *cbwcb, uint8_t cbwcbLen, void *data, uint
     esp_err_t err;
 
     // 1. Command transport
-    err = usbhost_bulkTransfer(&cbwBuf, &cbwLen, HOST_TO_DEV, 200);
+    // Give a spinning-up optical drive a reasonable command-wrapper window.
+    err = usbhost_bulkTransfer(&cbwBuf, &cbwLen, HOST_TO_DEV, 1500);
     if (err != ESP_OK)
     {
+        ESP_LOGE("usbhost_cmd_cbwExecute", "CBW transfer failed: %d", err);
         return err;
     }
 
@@ -114,6 +116,11 @@ esp_err_t usbhost_cmd_cbwExecute(void *cbwcb, uint8_t cbwcbLen, void *data, uint
             usbhost_clearFeature(epAddr);
             return err;
         }
+        else if (err != ESP_OK)
+        {
+            ESP_LOGE("usbhost_cmd_cbwExecute", "Data transfer failed: %d", err);
+            return err;
+        }
         else if (transferDatLen < *dataLen)
         {
             usbhost_clearFeature(epAddr);
@@ -125,7 +132,7 @@ esp_err_t usbhost_cmd_cbwExecute(void *cbwcb, uint8_t cbwcbLen, void *data, uint
     usbhost_msc_csw_t csw;
     uint32_t cswLen = sizeof(usbhost_msc_csw_t);
     if (*dataLen > 0)
-        err = usbhost_bulkTransfer(&csw, &cswLen, DEV_TO_HOST, 200);
+        err = usbhost_bulkTransfer(&csw, &cswLen, DEV_TO_HOST, 1500);
     else
         err = usbhost_bulkTransfer(&csw, &cswLen, DEV_TO_HOST, timeout);
 
@@ -145,6 +152,16 @@ esp_err_t usbhost_cmd_cbwExecute(void *cbwcb, uint8_t cbwcbLen, void *data, uint
             usbhost_resetRecovery();
             return err;
         }
+    }
+
+    // Do not interpret an unreceived CSW structure as a valid response.
+    if (err != ESP_OK) {
+        ESP_LOGE("usbhost_cmd_cbwExecute", "CSW transfer failed: %d", err);
+        return err;
+    }
+    if (cswLen != sizeof(usbhost_msc_csw_t)) {
+        ESP_LOGE("usbhost_cmd_cbwExecute", "Short CSW: %lu bytes", (unsigned long)cswLen);
+        return ESP_FAIL;
     }
 
     // check csw
