@@ -1,8 +1,8 @@
 /*
  * House Audio CD Input: USB audio-CD source node (Arduino IDE 2.0.14).
  * Uses the tested XIAO ESP32-S3 USB MSC/SCSI driver + reusable HTTP WAV transport.
- * v0.2 recovery + source-only auto-input event identity (unbuilt).
- * Existing CD audio streaming code remains unchanged.
+ * Source-level CD polling isolation, bounded read retries, and CD read-speed request.
+ * Requires an authorized compile and physical hardware acceptance before deployment.
  * Direct home Wi-Fi only; set credentials in LocalNetworkConfig.h before uploading.
  * No ESPHome dependency; use the normal Arduino IDE Upload.
  */
@@ -43,6 +43,10 @@ static constexpr uint32_t CD_POLL_MS = 2000;
 static constexpr uint32_t CD_TOC_RECHECK_MS = 15000;
 static constexpr uint32_t KEEP_TRACKS_THROUGH_FAILURES = 4; // retain through brief glitches (8 seconds)
 static constexpr uint32_t DRIVE_START_RETRY_MS = 30000;
+// Source-only tuning values; verify requested speed on the LiteOn hardware.
+static constexpr uint16_t CD_READ_SPEED_KBPS = 706; // 4x audio CD (MMC SET CD SPEED uses kB/s)
+static constexpr uint8_t CD_READ_MAX_ATTEMPTS = 3; // initial read + 2 retries
+static constexpr uint32_t CD_READ_RETRY_DELAY_MS = 100;
 
 static String gatewayIP, friendlyName, sourceId;
 static int lastRegisterHTTP = -999; // -999 means not attempted yet
@@ -190,18 +194,53 @@ static bool readDiscToc() {
   return true;
 }
 
-// Hardware-specific callback. The common transport only deals in PCM frames.
+// Hardware-specific callback. Retries are confined to the same LBA; a failed
+// track stream is terminated by the HTTP transport, not replaced by silent data.
 static bool readCDFrames(uint32_t lba, uint32_t frames, uint8_t *buffer, size_t capacity) {
   if (!usbhost_driverObj.deviceIsOpened || frames == 0 || capacity < frames * 2352U) return false;
-  uint32_t got = 0;
-  esp_err_t err = usbhost_scsi_readCD(lba, buffer, &frames, &got);
-  if (err != ESP_OK || got != frames * 2352U) {
-    Serial.printf("[CD/SCSI] READ CD failed at LBA %lu (%lu frames): %s (0x%X), %lu/%lu bytes\n",
-                  (unsigned long)lba, (unsigned long)frames, esp_err_to_name(err),
-                  (unsigned)err, (unsigned long)got, (unsigned long)(frames * 2352U));
+  const uint32_t expected = frames * 2352U;
+  for (uint8_t attempt = 1; attempt <= CD_READ_MAX_ATTEMPTS; ++attempt) {
+    if (!usbhost_driverObj.deviceIsOpened) return false;
+    uint32_t got = 0;
+    uint32_t requestedFrames = frames; // READ CD accepts an in/out parameter.
+    esp_err_t err = usbhost_scsi_readCD(lba, buffer, &requestedFrames, &got);
+    if (err == ESP_OK && got == expected) {
+      if (attempt > 1)
+        Serial.printf("[CD/SCSI] READ CD recovered at LBA %lu after %u attempts\n",
+                      (unsigned long)lba, (unsigned)attempt);
+      return true;
+    }
+    Serial.printf("[CD/SCSI] READ CD at LBA %lu (%lu frames), attempt %u/%u: %s (0x%X), %lu/%lu bytes\n",
+                  (unsigned long)lba, (unsigned long)frames, (unsigned)attempt,
+                  (unsigned)CD_READ_MAX_ATTEMPTS, esp_err_to_name(err),
+                  (unsigned)err, (unsigned long)got, (unsigned long)expected);
+    if (attempt < CD_READ_MAX_ATTEMPTS) {
+      vTaskDelay(pdMS_TO_TICKS(CD_READ_RETRY_DELAY_MS));
+      continue;
+    }
+    // A failed READ CD can be a bad sector or transport trouble. Sense may
+    // be unavailable after BOT recovery; report that rather than guessing.
+    uint8_t sense[18] = {};
+    esp_err_t senseErr = usbhost_scsi_requestSense(sense);
+    if (senseErr == ESP_OK) {
+      const uint8_t format = sense[0] & 0x7f;
+      if (format == 0x70 || format == 0x71)
+        Serial.printf("[CD/SCSI] READ CD final sense: key=0x%02X ASC=0x%02X ASCQ=0x%02X\n",
+                      (unsigned)(sense[2] & 0x0f), (unsigned)sense[12], (unsigned)sense[13]);
+      else if (format == 0x72 || format == 0x73)
+        Serial.printf("[CD/SCSI] READ CD final sense: key=0x%02X ASC=0x%02X ASCQ=0x%02X\n",
+                      (unsigned)(sense[1] & 0x0f), (unsigned)sense[2], (unsigned)sense[3]);
+      else
+        Serial.printf("[CD/SCSI] READ CD final sense format unrecognized: 0x%02X\n",
+                      (unsigned)format);
+    } else {
+      Serial.printf("[CD/SCSI] READ CD REQUEST SENSE unavailable: %s (0x%X)\n",
+                    esp_err_to_name(senseErr), (unsigned)senseErr);
+    }
+    setStatus("CD track read failed; select another track");
     return false;
   }
-  return true;
+  return false;
 }
 
 // Called only by audioStreamTask; this lease lasts across network writes as well.
@@ -217,6 +256,7 @@ static void discTask(void *) {
   uint32_t failures = 0, attempts = 0, lastStartAttempt = 0;
   bool startAttempted = false;
   bool forceTocScan = false;
+  bool speedApplied = false;
   uint32_t lastTocScan = 0;
   for (;;) {
     // Never send background SCSI commands while a WAV transfer owns the
@@ -235,12 +275,14 @@ static void discTask(void *) {
       haveTracks = false;
       failures = attempts = 0;
       startAttempted = false;
+      speedApplied = false;
       setScsiDiagnostic("Waiting for USB drive", 0, 0);
     } else {
       if (!hadDrive) {
         hadDrive = true;
         failures = attempts = 0;
         startAttempted = false;
+        speedApplied = false;
         setStatus("USB CD drive connected; checking disc");
       }
       if (rescan) {
@@ -266,6 +308,14 @@ static void discTask(void *) {
           if (readDiscToc()) {
             haveTracks = true;
             setScsiDiagnostic(wasRecovering ? "Drive recovered; TOC refreshed" : "Drive ready; TOC read OK", 0, attempts);
+            if (!speedApplied) {
+              esp_err_t speedErr = usbhost_scsi_setCDSpeed(CD_READ_SPEED_KBPS);
+              speedApplied = speedErr == ESP_OK;
+              Serial.printf("[CD/SCSI] SET CD SPEED request %u kB/s (~4x): %s (0x%X)\\n",
+                            (unsigned)CD_READ_SPEED_KBPS, esp_err_to_name(speedErr), (unsigned)speedErr);
+              // A rejected request must never prevent playback; drive support
+              // and actual rotational speed require hardware verification.
+            }
             setStatus("Audio CD detected");
           } else {
             // A single TOC failure must not erase known-good tracks.
@@ -284,7 +334,7 @@ static void discTask(void *) {
         } else {
           // Transport timeouts are not proof of media removal. Only decoded
           // NOT READY / MEDIUM NOT PRESENT clears the existing track list.
-          if (noMedium && haveTracks) { forgetDisc(); haveTracks = false; }
+          if (noMedium && haveTracks) { forgetDisc(); haveTracks = false; speedApplied = false; }
           setStatus(noMedium ? "No CD in drive; waiting for disc" : "CD not ready; automatic recovery active");
         }
         // Try the non-ejecting SCSI START command when the drive remains
