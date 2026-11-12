@@ -25,6 +25,8 @@ static AudioTrackSnapshot audioSnapshot;
 static AudioBlockReader audioReader;
 static AudioPcmFormat audioFormat;
 static WiFiServer audioServer(8080);
+static volatile bool audioStreamInProgress = false;
+static bool audioInputIsStreaming() { return audioStreamInProgress; }
 
 static bool audioWriteAll(WiFiClient &client, const uint8_t *data, size_t count) {
   unsigned long lastProgress = millis();
@@ -93,6 +95,7 @@ static void audioStreamTask(void *) {
     client.printf("HTTP/1.1 200 OK\r\nContent-Type: audio/wav\r\nContent-Length: %lu\r\nAccept-Ranges: none\r\nConnection: close\r\n\r\n",
                   (unsigned long)(total + 44));
     if (!head) {
+      audioStreamInProgress = true;
       uint8_t wav[44]; audioWavHeader(wav, total);
       if (audioWriteAll(client, wav, sizeof wav)) {
         for (uint32_t block = track.startBlock; block < track.endBlock; ) {
@@ -106,6 +109,7 @@ static void audioStreamTask(void *) {
         }
       }
     }
+    audioStreamInProgress = false;
     client.stop();
   }
 }
