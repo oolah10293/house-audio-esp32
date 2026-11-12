@@ -100,6 +100,7 @@ esp_err_t usbhost_cmd_cbwExecute(void *cbwcb, uint8_t cbwcbLen, void *data, uint
     if (err != ESP_OK)
     {
         ESP_LOGE("usbhost_cmd_cbwExecute", "CBW transfer failed: %d", err);
+        usbhost_resetRecovery();
         return err;
     }
 
@@ -119,6 +120,7 @@ esp_err_t usbhost_cmd_cbwExecute(void *cbwcb, uint8_t cbwcbLen, void *data, uint
         else if (err != ESP_OK)
         {
             ESP_LOGE("usbhost_cmd_cbwExecute", "Data transfer failed: %d", err);
+            usbhost_resetRecovery();
             return err;
         }
         else if (transferDatLen < *dataLen)
@@ -145,7 +147,7 @@ esp_err_t usbhost_cmd_cbwExecute(void *cbwcb, uint8_t cbwcbLen, void *data, uint
 
         // read again
         cswLen = sizeof(usbhost_msc_csw_t);
-        err = usbhost_bulkTransfer(&csw, &cswLen, DEV_TO_HOST, 200);
+        err = usbhost_bulkTransfer(&csw, &cswLen, DEV_TO_HOST, 1500);
         if (err != ESP_OK)
         {
             ESP_LOGI("usbhost_cmd_cbwExecute", "read csw fail again, reset recovery");
@@ -157,6 +159,7 @@ esp_err_t usbhost_cmd_cbwExecute(void *cbwcb, uint8_t cbwcbLen, void *data, uint
     // Do not interpret an unreceived CSW structure as a valid response.
     if (err != ESP_OK) {
         ESP_LOGE("usbhost_cmd_cbwExecute", "CSW transfer failed: %d", err);
+        usbhost_resetRecovery();
         return err;
     }
     if (cswLen != sizeof(usbhost_msc_csw_t)) {
@@ -175,8 +178,8 @@ esp_err_t usbhost_cmd_cbwExecute(void *cbwcb, uint8_t cbwcbLen, void *data, uint
     if (csw.bCSWStatus == 0)
         stateOK = true;
 
-    if (signatureOK & tagOK & stateOK)
+    if (signatureOK && tagOK && stateOK)
         return USB_TRANSFER_STATUS_COMPLETED;
-    else
-        return ESP_FAIL;
+    if (!signatureOK || !tagOK) usbhost_resetRecovery();
+    return ESP_FAIL;
 }
