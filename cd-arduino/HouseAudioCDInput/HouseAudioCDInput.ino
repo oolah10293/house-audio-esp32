@@ -25,6 +25,8 @@ static constexpr uint16_t GATEWAY_PORT = 8768;
 static WebServer ui(80);
 static SemaphoreHandle_t tocMutex;
 static SemaphoreHandle_t stateMutex;
+// Long-lived CD stream lease: prevents poll commands between READ CD blocks.
+static SemaphoreHandle_t cdIoMutex;
 static AudioInputTrack discTracks[99];
 static size_t discTrackCount = 0;
 static uint8_t tocBuffer[4 + 8 * 100];
@@ -173,11 +175,19 @@ static bool readDiscToc() {
     discFingerprint = fingerprint;
     physicalMediaMissing = false;
   }
+  // A syntactically successful but unusable TOC does not prove the disc
+  // disappeared. Retain the last verified list until confirmed removal.
+  if (!count) {
+    xSemaphoreGive(tocMutex);
+    char note[180];
+    snprintf(note, sizeof note, "READ TOC produced 0 audio tracks (%u descriptors); keeping previous list", (unsigned)entries);
+    setScsiDiagnostic(note, 0, recoveryAttempts);
+    return false;
+  }
   memcpy(discTracks, fresh, count * sizeof(AudioInputTrack));
   discTrackCount = count;
   xSemaphoreGive(tocMutex);
-  if (!count) setScsiDiagnostic("READ TOC succeeded but no audio tracks found", 0, recoveryAttempts);
-  return count > 0;
+  return true;
 }
 
 // Hardware-specific callback. The common transport only deals in PCM frames.
@@ -185,15 +195,36 @@ static bool readCDFrames(uint32_t lba, uint32_t frames, uint8_t *buffer, size_t 
   if (!usbhost_driverObj.deviceIsOpened || frames == 0 || capacity < frames * 2352U) return false;
   uint32_t got = 0;
   esp_err_t err = usbhost_scsi_readCD(lba, buffer, &frames, &got);
-  return err == ESP_OK && got == frames * 2352U;
+  if (err != ESP_OK || got != frames * 2352U) {
+    Serial.printf("[CD/SCSI] READ CD failed at LBA %lu (%lu frames): %s (0x%X), %lu/%lu bytes\n",
+                  (unsigned long)lba, (unsigned long)frames, esp_err_to_name(err),
+                  (unsigned)err, (unsigned long)got, (unsigned long)(frames * 2352U));
+    return false;
+  }
+  return true;
+}
+
+// Called only by audioStreamTask; this lease lasts across network writes as well.
+static bool beginCDStream() {
+  return xSemaphoreTake(cdIoMutex, pdMS_TO_TICKS(2000)) == pdTRUE;
+}
+static void endCDStream() {
+  xSemaphoreGive(cdIoMutex);
 }
 
 static void discTask(void *) {
   bool hadDrive = false, haveTracks = false;
   uint32_t failures = 0, attempts = 0, lastStartAttempt = 0;
   bool startAttempted = false;
+  bool forceTocScan = false;
   uint32_t lastTocScan = 0;
   for (;;) {
+    // Never send background SCSI commands while a WAV transfer owns the
+    // device. Zero wait avoids a blocked disc task retaining stale poll work.
+    if (xSemaphoreTake(cdIoMutex, 0) != pdTRUE) {
+      vTaskDelay(pdMS_TO_TICKS(CD_POLL_MS));
+      continue;
+    }
     if (!usbhost_driverObj.deviceIsOpened) {
       if (hadDrive) {
         physicalMediaMissing = true;
@@ -214,8 +245,9 @@ static void discTask(void *) {
       }
       if (rescan) {
         rescan = false;
-        forgetDisc();
-        haveTracks = false;
+        // A manual rescan requests a fresh TOC without prematurely declaring
+        // an inserted disc absent to the Pi.
+        forceTocScan = true;
         failures = 0;
         setStatus("Rescanning CD");
       }
@@ -227,9 +259,9 @@ static void discTask(void *) {
         // from a disc that may have been swapped while the drive was unready.
         // Catch quick swaps between readiness polls without interrogating
         // the drive during active audio extraction.
-        bool scheduled = millis() - lastTocScan >= CD_TOC_RECHECK_MS
-                         && !audioInputIsStreaming();
-        if (!haveTracks || wasRecovering || scheduled) {
+        bool scheduled = millis() - lastTocScan >= CD_TOC_RECHECK_MS;
+        if (!haveTracks || wasRecovering || forceTocScan || scheduled) {
+          forceTocScan = false;
           lastTocScan = millis();
           if (readDiscToc()) {
             haveTracks = true;
@@ -250,7 +282,9 @@ static void discTask(void *) {
         if (haveTracks && failures <= KEEP_TRACKS_THROUGH_FAILURES) {
           setStatus("CD briefly not ready; keeping tracks while retrying");
         } else {
-          if (haveTracks) { forgetDisc(); haveTracks = false; }
+          // Transport timeouts are not proof of media removal. Only decoded
+          // NOT READY / MEDIUM NOT PRESENT clears the existing track list.
+          if (noMedium && haveTracks) { forgetDisc(); haveTracks = false; }
           setStatus(noMedium ? "No CD in drive; waiting for disc" : "CD not ready; automatic recovery active");
         }
         // Try the non-ejecting SCSI START command when the drive remains
@@ -274,6 +308,7 @@ static void discTask(void *) {
         }
       }
     }
+    xSemaphoreGive(cdIoMutex);
     vTaskDelay(pdMS_TO_TICKS(CD_POLL_MS));
   }
 }
@@ -367,7 +402,8 @@ void setup() {
   Serial.begin(115200);
   tocMutex = xSemaphoreCreateMutex();
   stateMutex = xSemaphoreCreateMutex();
-  if (!tocMutex || !stateMutex) { Serial.println("Mutex allocation failed"); return; }
+  cdIoMutex = xSemaphoreCreateMutex();
+  if (!tocMutex || !stateMutex || !cdIoMutex) { Serial.println("Mutex allocation failed"); return; }
   gatewayIP = PI_GATEWAY_IP;
   friendlyName = SOURCE_DISPLAY_NAME;
   // New nonce on every power-on, unchanged during normal heartbeats.
@@ -385,7 +421,8 @@ void setup() {
   });
   ui.begin();
   usbhost_driverInit();
-  audioInputStartServer(snapshotTracks, readCDFrames, {44100, 2, 16, 2352}); // common audio source transport
+  audioInputStartServer(snapshotTracks, readCDFrames, {44100, 2, 16, 2352},
+                        beginCDStream, endCDStream); // common audio source transport
   if (xTaskCreatePinnedToCore(discTask, "cd-disc", 8192, nullptr, 1, nullptr, 0) != pdPASS)
     setStatus("Cannot start CD task");
   else setStatus("Waiting for USB CD drive");
