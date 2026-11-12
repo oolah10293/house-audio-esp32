@@ -35,10 +35,14 @@ esp_err_t usbhost_resetRecovery()
     esp_err_t resetErr = usbhost_cmd_bulkOnlyMassStorageReset();
     if (resetErr != ESP_OK) return resetErr;
     ESP_LOGI("usbhost_resetRecovery", "clearFeature ep_in_num");
-    usbhost_clearFeature(usbhost_driverObj.ep_in_num);
+    esp_err_t inErr = usbhost_clearFeature(usbhost_driverObj.ep_in_num);
     ESP_LOGI("usbhost_resetRecovery", "clearFeature ep_out_num");
-    usbhost_clearFeature(usbhost_driverObj.ep_out_num);
-
+    esp_err_t outErr = usbhost_clearFeature(usbhost_driverObj.ep_out_num);
+    if (inErr != ESP_OK || outErr != ESP_OK) {
+        ESP_LOGE("usbhost_resetRecovery", "endpoint recovery results: IN=%s (0x%X), OUT=%s (0x%X)",
+                 esp_err_to_name(inErr), (unsigned)inErr, esp_err_to_name(outErr), (unsigned)outErr);
+        return inErr != ESP_OK ? inErr : outErr;
+    }
     return ESP_OK;
 }
 
