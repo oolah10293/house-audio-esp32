@@ -15,7 +15,7 @@
 
 This is a diagnostic/recovery experiment, **not proof the CD drive has been fixed**. Only hardware tests can establish whether drive-start recovery works for the Lite-On, or whether the low-level USB transport requires further repair. The updated code does not attempt USB host re-enumeration after the host itself fails to open the drive.
 
-GitHub Actions build: `arduino-cd-input-check.yml` with `esp32:esp32@2.0.14` / `esp32:esp32:XIAO_ESP32S3`. The first attempt failed a warnings-as-errors format truncation diagnostic; it was corrected by explicitly bounding diagnostic string formatting. Confirm the final CI run before marking this revision compiled.
+GitHub Actions build: `arduino-cd-input-check.yml` with `esp32:esp32@2.0.14` / `esp32:esp32:XIAO_ESP32S3`. The first attempt failed a warnings-as-errors format truncation diagnostic; it was corrected by explicitly bounding diagnostic string formatting. **PASS**: final CI run [43162362226](https://github.com/oolah10293/house-audio-esp32/actions/runs/43162362226) built the exact delivered sketch with user-pinned Arduino ESP32 core 2.0.14. Git blob SHA of sketch: `7f29c98c897e3c9f865e7b6fa92406e4e250cd7d`. No physical XIAO flash or CD recovery field validation has been performed for v0.2.
 
 ## User delivery
 Standalone Arduino sketch ZIP `HouseMusic_CD_Input_AutoRecovery_v0_2_XIAO.zip`. Includes a single placeholder `LocalNetworkConfig.h` and all six USB/SCSI driver files; excludes the redundant example config header. User should copy their already-working credentials from their previous `LocalNetworkConfig.h`. No Pi changes, production main merge, or hardware flashing has been performed by the assistant.
