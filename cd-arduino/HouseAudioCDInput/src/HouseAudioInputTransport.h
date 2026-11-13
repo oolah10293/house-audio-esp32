@@ -66,8 +66,8 @@ static void audioWavHeader(uint8_t *h, uint32_t pcmBytes) {
 
 // The single streaming task must preserve an arriving GET until the old WAV
 // and its USB lease are released. A TCP accept does not guarantee the complete
-// HTTP request line has arrived; a blocking 300 ms read used to discard partial
-// lines and could reset an otherwise valid next-track connection.
+// HTTP request line has arrived. The former blocking read used a 300-second
+// WiFiClient timeout (mistaken for milliseconds), which could stall the handoff.
 // HEAD and non-track requests are refused without interrupting playback.
 static bool audioCheckReplacement(WiFiClient &candidate, String &candidateLine,
                                   unsigned long &candidateSince,
@@ -132,7 +132,9 @@ static void audioStreamTask(void *) {
     pending = WiFiClient();
     pendingRequest = "";
     if (!client) { vTaskDelay(pdMS_TO_TICKS(20)); continue; }
-    client.setTimeout(1500);
+    // Arduino-ESP32 2.0.14 WiFiClient::setTimeout takes SECONDS, not ms.
+    // Bound request-line/header reads without holding the single stream task.
+    client.setTimeout(2);
     if (request.isEmpty()) request = client.readStringUntil('\n');
     bool head = request.startsWith("HEAD ");
     int begin = request.indexOf("/track/");
