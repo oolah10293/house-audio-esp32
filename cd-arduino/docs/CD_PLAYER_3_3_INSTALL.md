@@ -39,3 +39,10 @@ Verify OTA-reported exact source SHA. Replay Track 10 -> 4 and Track 11 -> 6 and
 - User can install on the Pi with one command:
   `curl -fsSL https://raw.githubusercontent.com/oolah10293/house-audio-esp32/fix/liteon-usb-transport-recovery/cd-arduino/tools/install-liteon.sh | bash`
 - **Current hardware remains 3.2 until user independently runs OTA and reports result.** No 3.3 physical install/playback/track-switch verification has occurred; the original 502/RST root-cause hypothesis is not proven fixed by compilation.
+
+## User-confirmed OTA installation of 3.3 — 2026-11-13
+- The user ran the published single-command Pi OTA installer from `ads-suck@pihole`. The updater reported it was replacing **3.2**, source commit `0fc770eb88753e5ef8a523c530f5b5741028f5aa`, MD5 `28fc4aea5e52d4781af59dbdd016d624`.
+- It verified the release ZIP, uploaded the **799,616-byte** image with SHA-256 `2345a32910a88dcc907a7f0f4dc81465fb4960fefa58ea767de3ff0fa5cc2f41`, received `Image accepted`, and checked the rebooted source identity.
+- **Physical OTA PASS:** `PASS: ESP32 reports expected running commit: 8fe9715801497399eafacd8331a9ccf1ee1e15b4`.
+- New running image MD5: `0e0e4da19597308057924aaf8a65d770`.
+- **Behavior still unverified:** track-selection 502 / S3 TCP resets, successful 10→4 and 11→6 changes, uninterrupted streaming and CD takeover. This OTA success must not be described as confirmation that the socket fix works. No further build requested or initiated.
