@@ -73,3 +73,79 @@ The sections below document how the gate was developed and were written **before
 - The checkout completed, then the **Enforce explicit authorization marker** step failed as expected.
 - Crucially, the Arduino toolchain, compilation, ZIP validation, and artifact upload were **all skipped**. This verifies chat-controlled triggering and refusal to build without an approved marker.
 - The *authorized happy path* remains untested pending the user's explicit authorization of a build/package. An untested happy path must not be described as passing.
+
+
+## Cross-conversation USB/CD cleanup audit — 2026-11-13
+
+These findings were recovered from the user's *previous full CD-player
+conversation* as well as the current Pi/MPD troubleshooting, not only
+from explicitly tagged TODOs. Pinned **installed and compiled 3.3**
+source: `8fe9715801497399eafacd8331a9ccf1ee1e15b4`.
+Later HEAD changes are documentation/delivery only.
+
+**Not yet field-closed:**
+
+1. The original intermittent **USB drive detected / disc not ready /
+   audio tracks disappear** problem, including one user-reported case
+   where restarting the ESP32 and manually rescanning did **not**
+   recover CD tracks. Firmware includes non-ejecting SCSI START,
+   temporary track-list retention, BOT reset/endpoint recovery and
+   TOC refresh, but no controlled repeat failure-and-recovery hardware
+   acceptance. Distinguish confirmed medium absence from raw USB
+   transfer-status `0x2` using transfer-stage logs before attributing
+   the error to a drive or cable.
+2. The **1,500-ms USB CBW/CSW ceiling** remains provisional rather than
+   measured; see `USB_TIMEOUT_FOLLOWUP.md`. It is not MPD's timeout,
+   HTTPClient's separate 1,500-ms network timeout, or a fixed latency.
+3. **Failed/short READ CD** retries (up to three attempts with 100-ms
+   gaps) are implemented in the exact compiled 3.3 source, but
+   resilience against a read error hasn't been demonstrated on real
+   hardware. A terminal failure closes the WAV response with its
+   announced Content-Length unmet; verify Pi gateway/MPD handling and
+   subsequent successful track selections, rather than hiding faults
+   behind fabricated PCM.
+4. **SET CD SPEED** requests `706 kB/s` (~4×) on successful TOC.
+   A successful command return does not prove actual sustained speed,
+   and whether Lite-On honors the hint is unmeasured. Previous reports
+   of mid-track MPD time stalling, looping playback time, and gateway
+   502s were not independently closed by a complete-disc post-3.3
+   test; measure real streamed throughput and uninterrupted audio.
+5. **Physical eject/reinsert / different-disc changes** (especially
+   missed rapid swaps and same-track-count discs), firmware-driven
+   boot/autoplay, and source restoration have partial field evidence,
+   not full hardware acceptance. The current implementation skips
+   USB polls during active WAV streaming; test media changes when
+   idle and during/after stream cancellation without degrading
+   the working stream.
+6. **Potential source edge case, not a field failure:** a syntactically
+   valid TOC with zero recognized audio tracks returns false and keeps
+   previously advertised tracks. That safely tolerates transient
+   ambiguous failures, but a genuinely inserted data-only disc or
+   missed media swap may leave stale audio entries until a confirmed
+   medium-absent event. Reproduce before changing logic.
+7. **Minor logging cleanup:** the compiled source's
+   `SET CD SPEED` diagnostic at ~line 319 uses a literal
+   escaped `\\n` in the source format string rather than a newline
+   escape, potentially concatenating serial log lines. Address only
+   in a separately authorized firmware revision; do not reflash
+   just for cosmetic output.
+8. **Documentation and release nomenclature:** the legacy
+   `cd-arduino/README.md` documents `NetworkCDProbe` and explicitly
+   says that diagnostic sketch does not stream; do not mistake it
+   for the installed `HouseAudioCDInput` 3.3. Historical
+   `CD_PLAYER_3_3_INSTALL.md` contains pre-install "uncompiled"
+   text later superseded by the OTA acceptance section. The release
+   workflow and acceptance gate also contain historical authorization
+   policy descriptions, some superseded by the successfully used 3.3
+   marker build; reconcile future-facing instructions only, not
+   the factual timeline. Confirm intended version/filename for any
+   future delivery from the user's latest instruction.
+
+**Already confirmed:** 3.3 binary identity after authorized Pi OTA,
+audible CD playback and substantially improved track switching. Later
+Pi server stop-before-play fix received four HTTP 200 GUI selections.
+That result does **not** prove full-disc reliability or erase the
+USB error/timeout follow-up.
+
+**Restrictions:** this audit is documentation-only. No firmware source
+changes, compilation, build, ZIP packaging, publish, or OTA initiated.
