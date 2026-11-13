@@ -52,6 +52,7 @@ static String gatewayIP, friendlyName, sourceId;
 static int lastRegisterHTTP = -999; // -999 means not attempted yet
 static uint32_t lastRegister = 0, lastReconnect = 0;
 static volatile bool rescan = false;
+#include "src/FirmwareService.h"
 
 static uint16_t be16(const uint8_t *p) { return (uint16_t(p[0]) << 8) | p[1]; }
 static uint32_t be32(const uint8_t *p) {
@@ -396,7 +397,11 @@ static void statusPage() {
             "<meta http-equiv='refresh' content='8'><style>body{max-width:740px;margin:20px auto;"
             "padding:0 16px;font:16px system-ui;background:#111;color:#eee}input{padding:8px}"
             "button{padding:10px}a{color:#8df}</style></head><body><h2>House Music CD Input</h2>");
-  page += F("<p>Status: "); page += htmlEscape(stage); page += F("</p><p>Source ID: ");
+  page += F("<p>Status: "); page += htmlEscape(stage);
+  page += F("</p><p>Firmware: "); page += CD_RELEASE_VERSION;
+  page += F("</p><p>Source commit: "); page += CD_SOURCE_SHA;
+  page += F("</p><p>Running image MD5: "); page += ESP.getSketchMD5();
+  page += F("</p><p>Source ID: ");
   page += htmlEscape(sourceId); page += F("</p><p>Wi-Fi: ");
   page += WiFi.status() == WL_CONNECTED ? htmlEscape(WiFi.localIP().toString()) : String("not connected");
   page += F("</p><p>Pi gateway: "); page += htmlEscape(gatewayIP); page += F(":8768</p>");
@@ -466,9 +471,9 @@ void setup() {
   sourceId = "cd-" + String((uint32_t)(ESP.getEfuseMac() >> 24), HEX) +
              String((uint32_t)(ESP.getEfuseMac() & 0xFFFFFFULL), HEX);
 
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(HOME_WIFI_SSID, HOME_WIFI_PASSWORD);
+  cdConfigureNetwork();
   ui.on("/", HTTP_GET, statusPage);
+  cdFirmwareRoutes();
   ui.on("/rescan", HTTP_POST, []() {
     rescan = true;
     ui.sendHeader("Location", "/"); ui.send(303, "text/plain", "Rescanning");
@@ -486,11 +491,12 @@ void loop() {
   ui.handleClient();
   if (millis() - lastReconnect > 10000) {
     lastReconnect = millis();
-    if (WiFi.status() != WL_CONNECTED) WiFi.reconnect();
+    if (!cdSetupMode && WiFi.status() != WL_CONNECTED) WiFi.reconnect();
   }
   if (millis() - lastRegister > 5000) {
     lastRegister = millis();
     registerWithPi();
   }
+  cdFirmwareTick();
   delay(10);
 }
