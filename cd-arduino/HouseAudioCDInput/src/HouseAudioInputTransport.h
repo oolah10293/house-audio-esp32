@@ -67,11 +67,16 @@ static void audioWavHeader(uint8_t *h, uint32_t pcmBytes) {
 // The server has one streaming task. A slow or still-connected old WAV
 // response must not hold a newly requested CD track behind it for minutes.
 // A HEAD probe while playing is rejected without interrupting the music.
-static bool audioCheckReplacement(WiFiClient &pending) {
+static bool audioCheckReplacement(WiFiClient &pending, String &pendingRequest) {
   WiFiClient incoming = audioServer.available();
   if (!incoming) return false;
-  if (incoming.peek() == 'G') {
-    pending = incoming;  // process this GET after the previous USB lease ends
+  // TCP accept can precede the first request byte. peek() returns -1 in
+  // that case, which 2.0 incorrectly interpreted as an unsupported request.
+  incoming.setTimeout(300);
+  String request = incoming.readStringUntil('\n');
+  if (request.startsWith("GET /track/")) {
+    pendingRequest = request; // first line was consumed; reuse it below
+    pending = incoming;       // USB lease is released before this GET runs
     return true;
   }
   incoming.print("HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
@@ -83,12 +88,15 @@ static void audioStreamTask(void *) {
   static uint8_t pcm[8 * 2352]; // static buffer; validate block size before use
   audioServer.begin();
   WiFiClient pending;
+  String pendingRequest;
   for (;;) {
     WiFiClient client = pending ? pending : audioServer.available();
+    String request = pendingRequest;
     pending = WiFiClient();
+    pendingRequest = "";
     if (!client) { vTaskDelay(pdMS_TO_TICKS(20)); continue; }
     client.setTimeout(1500);
-    String request = client.readStringUntil('\n');
+    if (request.isEmpty()) request = client.readStringUntil('\n');
     bool head = request.startsWith("HEAD ");
     int begin = request.indexOf("/track/");
     int end = request.indexOf(".wav", begin);
@@ -129,7 +137,7 @@ static void audioStreamTask(void *) {
           // MPD may request another track before the old socket notices its
           // disconnect. Cancel at block boundaries so the next GET does not
           // time out behind the previous full-length CD stream.
-          if (audioCheckReplacement(pending)) {
+          if (audioCheckReplacement(pending, pendingRequest)) {
             Serial.printf("[Audio Input] switching streams at block %lu\n", (unsigned long)block);
             break;
           }
