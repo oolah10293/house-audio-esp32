@@ -1,2 +1,2 @@
-# User explicitly authorized LiteOn CD player 3.2 timing/handoff build and release in chat.
-BUILD_AND_PACKAGE 20261113-liteon-cd-3_2-handoff-release
+# User explicitly authorized the LiteOn CD player 3.3 connection-state correction, build and release in chat.
+BUILD_AND_PACKAGE 20261113-liteon-cd-3_3-upstream-network-fix
