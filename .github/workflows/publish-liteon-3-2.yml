@@ -4,7 +4,7 @@ on:
     branches:
       - fix/liteon-usb-transport-recovery
     paths:
-      - cd-arduino/ci/authorized-publish-3-1.txt
+      - cd-arduino/ci/authorized-publish-3-2.txt
 
 permissions:
   contents: write
@@ -23,7 +23,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          marker=cd-arduino/ci/authorized-publish-3-1.txt
+          marker=cd-arduino/ci/authorized-publish-3-2.txt
           test "$(git diff-tree --no-commit-id --name-only -r HEAD)" = "$marker"
           grep -qx 'PUBLISH_EXISTING_3_2 20261113-one-command-pi-installer' "$marker"
       - name: Download, verify, publish precompiled and CI-verified 3.2 archive
