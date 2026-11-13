@@ -46,3 +46,9 @@ Verify OTA-reported exact source SHA. Replay Track 10 -> 4 and Track 11 -> 6 and
 - **Physical OTA PASS:** `PASS: ESP32 reports expected running commit: 8fe9715801497399eafacd8331a9ccf1ee1e15b4`.
 - New running image MD5: `0e0e4da19597308057924aaf8a65d770`.
 - **Behavior still unverified:** track-selection 502 / S3 TCP resets, successful 10→4 and 11→6 changes, uninterrupted streaming and CD takeover. This OTA success must not be described as confirmation that the socket fix works. No further build requested or initiated.
+
+## User-reported playback acceptance — 2026-11-13
+- After installing 3.3, the user reported, **"other than a few timed out messages it worked beautifully"** during the track-switching retest following the requested Track 10 -> Track 4 check.
+- **Confirmed by user report:** the CD playback/track switching subjectively worked very well. This is a substantial observed improvement over 3.2, which repeatedly returned gateway 502 and skipped the selected track.
+- **Not confirmed:** precise track sequence for every attempted switch, whether any gateway HTTP 502 or TCP RST remained, how many timeouts or their specific origin, whether timeouts interrupted audio, and sustained playback across a whole disc. Preserve the remaining timed-out messages as unresolved; do not declare fully clean hardware acceptance without additional evidence.
+- **No new firmware changes, builds, packages, or installations authorized or performed on this report.** Installed hardware is still 3.3, source SHA `8fe9715801497399eafacd8331a9ccf1ee1e15b4`.
