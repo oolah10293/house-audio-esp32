@@ -64,23 +64,57 @@ static void audioWavHeader(uint8_t *h, uint32_t pcmBytes) {
   memcpy(h + 36, "data", 4); audioLE32(h + 40, pcmBytes);
 }
 
-// The server has one streaming task. A slow or still-connected old WAV
-// response must not hold a newly requested CD track behind it for minutes.
-// A HEAD probe while playing is rejected without interrupting the music.
-static bool audioCheckReplacement(WiFiClient &pending, String &pendingRequest) {
-  WiFiClient incoming = audioServer.available();
-  if (!incoming) return false;
-  // TCP accept can precede the first request byte. peek() returns -1 in
-  // that case, which 2.0 incorrectly interpreted as an unsupported request.
-  incoming.setTimeout(300);
-  String request = incoming.readStringUntil('\n');
-  if (request.startsWith("GET /track/")) {
-    pendingRequest = request; // first line was consumed; reuse it below
-    pending = incoming;       // USB lease is released before this GET runs
-    return true;
+// The single streaming task must preserve an arriving GET until the old WAV
+// and its USB lease are released. A TCP accept does not guarantee the complete
+// HTTP request line has arrived; a blocking 300 ms read used to discard partial
+// lines and could reset an otherwise valid next-track connection.
+// HEAD and non-track requests are refused without interrupting playback.
+static bool audioCheckReplacement(WiFiClient &candidate, String &candidateLine,
+                                  unsigned long &candidateSince,
+                                  WiFiClient &pending, String &pendingRequest) {
+  if (!candidate) {
+    candidate = audioServer.available();
+    if (!candidate) return false;
+    candidateLine = "";
+    candidateSince = millis();
   }
-  incoming.print("HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
-  incoming.stop();
+
+  // Do not block CD reads while waiting for the HTTP request line. Keep the
+  // accepted socket and any partial bytes through subsequent audio blocks.
+  while (candidate.available() > 0) {
+    int next = candidate.read();
+    if (next < 0) break;
+    if (next == '\n') {
+      if (candidateLine.startsWith("GET /track/")) {
+        pendingRequest = candidateLine;
+        pending = candidate;
+        candidate = WiFiClient(); // pending now owns the waiting connection
+        candidateLine = "";
+        return true;
+      }
+      candidate.print("HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+      candidate.stop();
+      candidate = WiFiClient();
+      candidateLine = "";
+      return false;
+    }
+    if (candidateLine.length() >= 127) {
+      candidate.print("HTTP/1.1 414 URI Too Long\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+      candidate.stop();
+      candidate = WiFiClient();
+      candidateLine = "";
+      return false;
+    }
+    candidateLine += (char)next;
+  }
+
+  // A broken/incomplete connection must not permanently block another GET.
+  // Four seconds is shorter than the Pi gateway's 8-second upstream timeout.
+  if (!candidate.connected() || millis() - candidateSince > 4000UL) {
+    candidate.stop();
+    candidate = WiFiClient();
+    candidateLine = "";
+  }
   return false;
 }
 
@@ -89,6 +123,9 @@ static void audioStreamTask(void *) {
   audioServer.begin();
   WiFiClient pending;
   String pendingRequest;
+  WiFiClient candidate;
+  String candidateLine;
+  unsigned long candidateSince = 0;
   for (;;) {
     WiFiClient client = pending ? pending : audioServer.available();
     String request = pendingRequest;
@@ -137,7 +174,8 @@ static void audioStreamTask(void *) {
           // MPD may request another track before the old socket notices its
           // disconnect. Cancel at block boundaries so the next GET does not
           // time out behind the previous full-length CD stream.
-          if (audioCheckReplacement(pending, pendingRequest)) {
+          if (audioCheckReplacement(candidate, candidateLine, candidateSince,
+                                    pending, pendingRequest)) {
             Serial.printf("[Audio Input] switching streams at block %lu\n", (unsigned long)block);
             break;
           }
