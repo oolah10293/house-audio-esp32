@@ -416,12 +416,12 @@ static void statusPage() {
   }
   page += F("</ul><form method='POST' action='/rescan'><button>Rescan CD</button></form>");
   page += F("<h3>Network</h3><p>Home Wi-Fi SSID: ");
-  page += htmlEscape(String(HOME_WIFI_SSID));
+  page += htmlEscape(cdSsid);
   page += F("</p><p>Pi registration: ");
   if (lastRegisterHTTP == 200) page += F("OK (HTTP 200)");
   else if (lastRegisterHTTP == -999) page += F("not attempted yet");
   else page += "HTTP " + String(lastRegisterHTTP);
-  page += F("</p><p>Wi-Fi settings are compiled locally from LocalNetworkConfig.h.</p>");
+  page += F("</p><p>Wi-Fi settings are saved in ESP32 nonvolatile storage after the first setup.</p>");
   page += F("<p>Paired House Music firmware can automatically play a newly inserted disc. CD input is experimental.</p></body></html>");
   ui.send(200, "text/html", page);
 }
