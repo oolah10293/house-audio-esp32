@@ -44,3 +44,14 @@ The updater checks the binary against its SHA-256 manifest, confirms old firmwar
 
 ## Version label and contents
 Do not merge this package with an old Arduino sketch folder. Do not touch `LocalNetworkConfig.h`; no Arduino installation is needed. The ZIP includes source and documentation for recovery, but the normal OTA path uses only the three files listed above.
+
+## Authorized 3.1 build checkpoint — 2026-11-13
+- Explicit user authorization for this one subsequent OTA verification image was given in conversation.
+- Exact compiled source commit: `01452e660f3e8fec5d30ba84823cc0cfb5d2d58e`.
+- GitHub Actions run: https://github.com/oolah10293/house-audio-esp32/actions/runs/43476480059 — **PASS**.
+- Arduino core 2.0.14 / XIAO ESP32-S3 compile and checked ZIP integrity **PASS**.
+- Compiled OTA application image: **798,336 bytes**; no private SSID/password embedded.
+- Release archive: `LiteOn CD player 3.1.zip`, **544,921 bytes**.
+- ZIP SHA-256: `bcae13b3ce1a37cfa5c5bc3beadab7e555f4649ea6ecdbe081329f6cef7597ed`.
+- Hardware OTA installation **not yet verified**; do not declare success until the Pi updater reports exact new commit after reboot.
+- Stream-replacement code unchanged from user-reported 3.0 build.
