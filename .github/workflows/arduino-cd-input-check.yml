@@ -61,7 +61,7 @@ jobs:
           from zipfile import ZipFile, ZIP_DEFLATED
           import hashlib, json, subprocess
           source = Path('cd-arduino/HouseAudioCDInput')
-          path = Path('LiteOn CD player.zip')
+          path = Path('LiteOn CD player 2.0.zip')
           required = [
               'HouseAudioCDInput.ino',
               'LocalNetworkConfig.h',
@@ -92,7 +92,7 @@ jobs:
                   manifest[rel] = hashlib.sha256(data).hexdigest()
               archive.writestr('SOURCE_SHA.txt', source_sha + '\n')
               archive.writestr('VERSION.txt',
-                  'House Music CD Player\n'
+                  'House Music CD Player 2.0\n'
                   + 'Source commit: ' + source_sha + '\n'
                   + 'Automatic playback identity: bootSession/discRevision present\n'
                   + 'Hardware acceptance: NOT VERIFIED\n')
@@ -114,8 +114,8 @@ jobs:
       - name: Upload verified pair
         uses: actions/upload-artifact@v4
         with:
-          name: LiteOn CD player
+          name: LiteOn CD player 2.0
           path: |
-            LiteOn CD player.zip
+            LiteOn CD player 2.0.zip
             SOURCE_MANIFEST.json
           if-no-files-found: error
