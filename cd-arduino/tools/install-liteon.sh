@@ -3,7 +3,7 @@
 set -euo pipefail
 
 HOST="${LITEON_HOST:-192.168.1.175}"
-URL="https://github.com/oolah10293/house-audio-esp32/releases/download/liteon-cd-3.1/LiteOn%20CD%20player%203.1.zip"
+URL="https://github.com/oolah10293/house-audio-esp32/releases/download/liteon-cd-3.1/LiteOn.CD.player.3.1.zip"
 EXPECTED_ZIP="bcae13b3ce1a37cfa5c5bc3beadab7e555f4649ea6ecdbe081329f6cef7597ed"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
