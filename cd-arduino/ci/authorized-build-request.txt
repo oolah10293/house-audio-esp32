@@ -1,2 +1,2 @@
-# User authorized one-time OTA verification update: LiteOn CD player 3.1.
-BUILD_AND_PACKAGE 20261113-liteon-cd-3_1-ota-install
+# User explicitly authorized LiteOn CD player 3.2 timing/handoff build and release in chat.
+BUILD_AND_PACKAGE 20261113-liteon-cd-3_2-handoff-release
