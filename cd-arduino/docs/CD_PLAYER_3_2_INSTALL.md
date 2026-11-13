@@ -39,3 +39,11 @@ User explicitly stated: “this is your explicit authorized 3.2 build” on 2026
 - **Published artifact:** `LiteOn.CD.player.3.2.zip`, 545,826 bytes. Publisher and local inspection confirmed SHA-256 `8086352210cec9735b6e2c289f361abc683ce4400058d0a632a058568c1a4599`; the download asset URL is byte-for-byte the URL specified by `cd-arduino/tools/install-liteon.sh`, independently confirmed by the GitHub release API.
 - **OTA application binary:** `HouseAudioCDInput.ino.bin`, 798,912 bytes; SHA-256 `3f4120535bf18ea4f4a64bd6e2671f5a2fdcf16666aefdc9925e3b63978690b3`.
 - **Running firmware status:** 3.1 previously verified on user hardware. 3.2 **not yet flashed/tested**; do not claim timing fix without track-switching test and gateway journal.
+
+## User-confirmed OTA installation of 3.2 — 2026-11-13
+- User ran the one-command Pi installer `cd-arduino/tools/install-liteon.sh` from `ads-suck@pihole`.
+- Pi updater read existing installed firmware **3.1**, source SHA `01452e660f3e8fec5d30ba84823cc0cfb5d2d58e`, running MD5 `741945608bf41301f27a87be68ee83fb`.
+- It verified the published archive, uploaded the **798,912-byte** firmware with SHA-256 `3f4120535bf18ea4f4a64bd6e2671f5a2fdcf16666aefdc9925e3b63978690b3`, received `Image accepted`, and polled after reboot.
+- **OTA installation PASS on actual hardware:** `PASS: ESP32 reports expected running commit: 0fc770eb88753e5ef8a523c530f5b5741028f5aa`.
+- New running image MD5: `28fc4aea5e52d4781af59dbdd016d624`.
+- **Not yet verified:** whether the 3.2 stream handoff fixes gateway 502s, MPD track skipping, or CD audio dropout. Test with rapid/sequential track changes against `house-audio-input-gateway.service` journal before claiming behavioral correction.
