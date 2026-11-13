@@ -60,3 +60,13 @@ User explicitly stated: “this is your explicit authorized 3.2 build” on 2026
 - Review of S3 `HouseAudioInputTransport.h` confirms **single-stream task** and unconditional **replacement on every new GET /track/**. This can conflict if MPD opens another track to prefetch or prepare it while the chosen stream is active. MPD documentation says its optional input cache prefetches queued songs, but whether it is active on the user's Pi or caused this failure is **unverified**.
 - Gateway access logs are emitted at HTTP response time rather than connection arrival time. The same-second 502 for 4 followed by HTTP 200 for 5 is not proof that track 5 was opened first or that MPD prefetch is the source of the reset.
 - Next diagnostic should preserve **wire-level GET arrival order and TCP RST direction** around one track transition; do not iterate with another blind firmware build. No 3.3 build/package/deployment authorized.
+
+## TCP direction checkpoint — 2026-11-13 13:47:50 EST
+- User ran `tcpdump` on Pi filtering S3 (`192.168.1.175:8080`) HTTP GET and TCP RST. The interface's promiscuous-mode warning was non-fatal.
+- At `13:47:50.750776` Pi `192.168.1.12:40298` sent the complete HTTP request `GET /track/4.wav HTTP/1.1` with `Connection: close` to S3.
+- `13:47:50.760549`–`13:47:50.762809`: Pi transmitted multiple RST segments on **another existing source port 52460**, consistent with canceling an earlier stream.
+- At `13:47:50.786714` **S3 at 192.168.1.175:8080 transmitted TCP RST/ACK to Pi port 40298**. It is the newly requested Track 4 socket, and the reset arrived ~35.9 ms after the observed GET.
+- At `13:47:50.792026` Pi then sent `GET /track/5.wav` on *another* socket (40312).
+- This confirms **direction of the new-track reset: S3 -> Pi**, independently of Pi canceling the old socket. Track 5's GET appears **after** the RST of Track 4 in this capture: it cannot be the direct cause of that already-transmitted reset. This weakens any claim that Track 5 prefetch interrupted Track 4, while not excluding another concurrent connection not visible under the narrow GET/RST filter.
+- The capture filter did **not** include SYN/FIN or HTTP response headers; it cannot establish whether S3 sent an HTTP status line before the reset, whether any other socket was accepted, or which firmware branch closed Track 4. The source under investigation remains `HouseAudioInputTransport.h`; Arduino-ESP32 2.0.14 `WiFiClient` and `WiFiServer` were inspected, including shared socket-copy ownership.
+- Next diagnostic: one short `tcpdump` capture that includes SYN, FIN, RST, GET and `HTTP` responses; avoid another speculative firmware build. User has **not** authorized any 3.3 build.
