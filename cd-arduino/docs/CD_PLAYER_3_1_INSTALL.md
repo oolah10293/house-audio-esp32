@@ -55,3 +55,14 @@ Do not merge this package with an old Arduino sketch folder. Do not touch `Local
 - ZIP SHA-256: `bcae13b3ce1a37cfa5c5bc3beadab7e555f4649ea6ecdbe081329f6cef7597ed`.
 - Hardware OTA installation **not yet verified**; do not declare success until the Pi updater reports exact new commit after reboot.
 - Stream-replacement code unchanged from user-reported 3.0 build.
+
+## One-command Pi installer delivery checkpoint
+- Authorized by user in conversation after failed cross-machine transfer attempts; use **one command on Pi only**.
+- Pi installer source: `cd-arduino/tools/install-liteon.sh` (commit `7afd68ee86023803bad6f8c2fc0716d8190c1ae1`).
+- GitHub release tag: `liteon-cd-3.1`, precompiled package asset named `LiteOn.CD.player.3.1.zip`. Public repository release resource confirmed by GitHub API.
+- Publisher workflow run: https://github.com/oolah10293/house-audio-esp32/actions/runs/43479446225 — **PASS**. Its workflow SHA was `0b125b18629a237c62b083ab2db7400df91e2cea`.
+- Publisher verified release ZIP SHA-256 `bcae13b3ce1a37cfa5c5bc3beadab7e555f4649ea6ecdbe081329f6cef7597ed` and embedded source SHA `01452e660f3e8fec5d30ba84823cc0cfb5d2d58e`; **no firmware recompile**.
+- Installation command on Pi:
+  `curl -fsSL https://raw.githubusercontent.com/oolah10293/house-audio-esp32/fix/liteon-usb-transport-recovery/cd-arduino/tools/install-liteon.sh | bash`
+- Installer downloads asset into a temporary directory, verifies pinned package SHA, extracts binary/manifest/updater, uses existing Pi OTA uploader with post-reboot exact-commit confirmation, and cleans up. It does not use Windows or require manual ZIP transfer.
+- **Pi execution not yet verified on actual machine**. GitHub API verifies publication; no hardware update assumed until Pi prints `PASS`.
