@@ -99,7 +99,7 @@ jobs:
               for p in required:z.write(source/p,'HouseAudioCDInput/'+p)
               z.write(app,'HouseAudioCDInput.ino.bin')
               z.write('cd-arduino/tools/update_cd_from_pi.py','update_cd_from_pi.py')
-              z.write('cd-arduino/docs/CD_PLAYER_3_2_INSTALL.md','INSTALL.md')
+              z.write('cd-arduino/docs/CD_PLAYER_3_3_INSTALL.md','INSTALL.md')
               z.writestr('SOURCE_MANIFEST.json',json.dumps(metadata,indent=2)+'\n')
               z.writestr('VERSION.txt','LiteOn CD player 3.3\nSource commit: '+source_sha+
                          '\nArduino ESP32 core 2.0.14 / XIAO ESP32-S3\n'
