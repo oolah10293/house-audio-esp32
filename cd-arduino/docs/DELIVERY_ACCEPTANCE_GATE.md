@@ -4,7 +4,7 @@ This is a project checkpoint, not a claim that the firmware is fixed. It applies
 
 ## Filename and identity gate — mandatory
 
-- Use versioned `LiteOn CD player 2.0.zip` for this approved revision; future versions can advance the number. for the Lite-On ESP32 package; only `HouseMusic_CD_Pi.zip` for the paired Pi package.
+- Use the approved release's versioned Lite-On package name. **The latest installed CD firmware verified by Pi OTA is 3.3** (`LiteOn CD player 3.3`); package/version references to 2.0 below are historical. Keep `HouseMusic_CD_Pi.zip` as the separately named paired Pi integration package.
 - Reject a delivered sketch if the actual ZIP lacks `bootSession` or `discRevision`, or contains the old webpage text `It does not automatically change House Music playback.`
 - Put `VERSION.txt` in the package with the exact compiled commit SHA, feature identity and hardware-test status. Never substitute an old v0.2 sketch under a new ZIP name.
 - Read the top of `README.md` and this gate before each future delivery. The GitHub CI workflow checks the ESP ZIP identity and name automatically.
@@ -36,10 +36,16 @@ This is a project checkpoint, not a claim that the firmware is fixed. It applies
 - [ ] Determine whether USB BOT recovery fixes intermittent 0x2 errors on real Lite-On hardware.
 - [ ] Confirm disc detection, track enumeration, audio streaming, source automatic takeover and manual source override under real conditions.
 
-## Delivery status for current branch
-- **Not hardware verified.** Any previous CI run at a different commit does not validate the latest delivery SHA.
-- **Previously delivered archive equivalence to compiled revision remains unverified**, and must not be claimed complete.
+## Current CD 3.3 hardware and delivery status (updated 2026-11-13)
+- **OTA identity verified on hardware:** user installed 3.3 on the ESP32-S3 from the Pi; updater reported the expected compiled SHA `8fe9715801497399eafacd8331a9ccf1ee1e15b4` and running MD5 `0e0e4da19597308057924aaf8a65d770`.
+- **Published package vs compiled revision verified:** authorized CI run `43489668762` compiled exact SHA and validated the packaged source and binary; publication run `43490039922` verified and published the existing image; one-command installer is pinned to its release ZIP SHA-256. Details: `CD_PLAYER_3_3_INSTALL.md`.
+- **Playback result by user report:** track changes worked very well after installation, with a few timeout messages. Their origin and effect on audio are not yet independently identified; avoid claiming a timeout-free or long-duration acceptance pass.
+- **Current branch commits after the compiled SHA are documentation/workflow/installer changes only**. Do not mistake branch HEAD for the compiled binary SHA. A future firmware code change requires a fresh, separately authorized build and exact-SHA verification.
 
+
+## Historical build-gate setup record (2026-11-12)
+
+The sections below document how the gate was developed and were written **before** the 3.3 compiled release. Their "not yet proven" status statements are historical; the verified 3.3 build and publication runs above supersede them.
 
 ## Automated enforcement status (2026-11-12)
 
