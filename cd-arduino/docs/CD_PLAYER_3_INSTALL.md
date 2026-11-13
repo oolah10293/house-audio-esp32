@@ -37,3 +37,13 @@ If an update does not reboot into the expected commit, stop and report the conso
 
 ## Scope
 This release adds identity, network provisioning, and OTA infrastructure. It intentionally does **not** change the existing CD track streaming or stream-replacement logic.
+## Build/release checkpoint — 2026-11-13
+
+- **User authorization:** explicit in the current conversation, covering implementation, compilation, packaging, and delivery of firmware identity plus Pi-based OTA infrastructure.
+- **Compiled source SHA:** `7f2073f8c1df3167293f7482baadffc1e05e4031`.
+- **GitHub Actions:** https://github.com/oolah10293/house-audio-esp32/actions/runs/43466783590 — **PASS** (Arduino 2.0.14 XIAO ESP32-S3 compile, exact-commit manifest and package verification).
+- **Firmware application size:** 798,336 bytes; compiled against 1,310,720-byte OTA app-slot limit.
+- **Packaged ZIP SHA-256:** `633073ca7e5a56c5ac2eb201533becd62d2c3565b3e29ff7fec8f775ec1b0bc4`.
+- **Delivered files:** `LiteOn CD player 3.0.zip`, containing the compiled binary, versioned source sketch, fixed OTA partitions.csv, local Pi updater script, installation documentation, and checksummed manifest.
+- **Physical tests:** **NOT YET PERFORMED**. No claim of successful initial flash, runtime Wi-Fi retention, OTA upload, or CD playback validation.
+- **Streaming changes:** none; the existing track-switching problem remains a separate issue.
