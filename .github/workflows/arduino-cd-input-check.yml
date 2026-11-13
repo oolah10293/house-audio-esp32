@@ -52,7 +52,7 @@ jobs:
         run: |
           set -euo pipefail
           cp cd-arduino/HouseAudioCDInput/LocalNetworkConfig.example.h cd-arduino/HouseAudioCDInput/LocalNetworkConfig.h
-          printf '#pragma once\n#define CD_RELEASE_VERSION "3.1"\n#define CD_SOURCE_SHA "%s"\n' "$SOURCE_SHA" > cd-arduino/HouseAudioCDInput/src/BuildIdentity.h
+          printf '#pragma once\n#define CD_RELEASE_VERSION "3.2"\n#define CD_SOURCE_SHA "%s"\n' "$SOURCE_SHA" > cd-arduino/HouseAudioCDInput/src/BuildIdentity.h
           arduino-cli compile --fqbn esp32:esp32:XIAO_ESP32S3 --warnings all \
             --build-property build.partitions=default --build-property upload.maximum_size=1310720 \
             --output-dir "$RUNNER_TEMP/cd-build" cd-arduino/HouseAudioCDInput
@@ -66,7 +66,7 @@ jobs:
           from zipfile import ZipFile, ZIP_DEFLATED
           import hashlib, json, subprocess, os
           source = Path('cd-arduino/HouseAudioCDInput')
-          path = Path('LiteOn CD player 3.1.zip')
+          path = Path('LiteOn CD player 3.2.zip')
           app = Path(os.environ['CD_BUILD_DIR'])/'HouseAudioCDInput.ino.bin'
           assert app.is_file() and app.stat().st_size > 100000, 'Compiled binary missing'
           required = [
@@ -88,10 +88,10 @@ jobs:
           assert 'It does not automatically change House Music playback.' not in sketch
           source_sha=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
           identity=(source/'src/BuildIdentity.h').read_text()
-          assert source_sha in identity and '3.1' in identity
+          assert source_sha in identity and '3.2' in identity
           manifest={p:hashlib.sha256((source/p).read_bytes()).hexdigest() for p in required}
           bin_digest=hashlib.sha256(app.read_bytes()).hexdigest()
-          metadata={'source_sha':source_sha,'release_version':'3.1',
+          metadata={'source_sha':source_sha,'release_version':'3.2',
                     'arduino_core':'esp32:esp32@2.0.14','board':'esp32:esp32:XIAO_ESP32S3',
                     'partition_scheme':'default OTA-enabled 1310720 byte app slots',
                     'firmware_bin_sha256':bin_digest,'hardware_verified':False,'files_sha256':manifest}
@@ -99,13 +99,13 @@ jobs:
               for p in required:z.write(source/p,'HouseAudioCDInput/'+p)
               z.write(app,'HouseAudioCDInput.ino.bin')
               z.write('cd-arduino/tools/update_cd_from_pi.py','update_cd_from_pi.py')
-              z.write('cd-arduino/docs/CD_PLAYER_3_1_INSTALL.md','INSTALL.md')
+              z.write('cd-arduino/docs/CD_PLAYER_3_2_INSTALL.md','INSTALL.md')
               z.writestr('SOURCE_MANIFEST.json',json.dumps(metadata,indent=2)+'\n')
-              z.writestr('VERSION.txt','LiteOn CD player 3.1\nSource commit: '+source_sha+
+              z.writestr('VERSION.txt','LiteOn CD player 3.2\nSource commit: '+source_sha+
                          '\nArduino ESP32 core 2.0.14 / XIAO ESP32-S3\n'
                          'Hardware acceptance: NOT VERIFIED\n'
-                         'First USB flash required to install OTA-enabled partition layout.\n'
-                         'Preserve existing local Wi-Fi credentials for first Arduino upload.\n')
+                         'Already running 3.1 can install 3.2 by Pi OTA; USB flash not needed.\n'
+                         'Wi-Fi credentials persist in S3 NVS; no Wi-Fi secret in firmware archive.\n')
           with ZipFile(path) as z:
               assert z.testzip() is None
               assert hashlib.sha256(z.read('HouseAudioCDInput.ino.bin')).hexdigest()==bin_digest
@@ -117,8 +117,8 @@ jobs:
       - name: Upload verified pair
         uses: actions/upload-artifact@v4
         with:
-          name: LiteOn CD player 3.1
+          name: LiteOn CD player 3.2
           path: |
-            LiteOn CD player 3.1.zip
+            LiteOn CD player 3.2.zip
             SOURCE_MANIFEST.json
           if-no-files-found: error
