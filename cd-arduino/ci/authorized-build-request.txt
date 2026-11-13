@@ -1,2 +1,2 @@
-# Authorized build retry after compile failure at 7c037c0; obsolete unused-function warning fixed.
-BUILD_AND_PACKAGE 20261112-liteon-full-revision-03
+# User-authorized compile and package of LiteOn CD player 2.0; hardware flashing remains manual.
+BUILD_AND_PACKAGE 20261113-liteon-cd-player-2_0
