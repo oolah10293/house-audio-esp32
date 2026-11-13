@@ -1,2 +1,2 @@
-# User-authorized firmware identity and Pi OTA 3.0 release; physical first flash remains manual.
-BUILD_AND_PACKAGE 20261113-liteon-cd-3_0-ota-identity
+# User authorized release: LiteOn 3.0 identity, OTA partitions, and Pi updater.
+BUILD_AND_PACKAGE 20261113-liteon-cd-3_0-ota-final-2
