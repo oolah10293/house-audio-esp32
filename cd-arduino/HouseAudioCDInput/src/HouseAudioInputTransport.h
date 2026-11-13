@@ -64,11 +64,28 @@ static void audioWavHeader(uint8_t *h, uint32_t pcmBytes) {
   memcpy(h + 36, "data", 4); audioLE32(h + 40, pcmBytes);
 }
 
+// The server has one streaming task. A slow or still-connected old WAV
+// response must not hold a newly requested CD track behind it for minutes.
+// A HEAD probe while playing is rejected without interrupting the music.
+static bool audioCheckReplacement(WiFiClient &pending) {
+  WiFiClient incoming = audioServer.available();
+  if (!incoming) return false;
+  if (incoming.peek() == 'G') {
+    pending = incoming;  // process this GET after the previous USB lease ends
+    return true;
+  }
+  incoming.print("HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+  incoming.stop();
+  return false;
+}
+
 static void audioStreamTask(void *) {
   static uint8_t pcm[8 * 2352]; // static buffer; validate block size before use
   audioServer.begin();
+  WiFiClient pending;
   for (;;) {
-    WiFiClient client = audioServer.available();
+    WiFiClient client = pending ? pending : audioServer.available();
+    pending = WiFiClient();
     if (!client) { vTaskDelay(pdMS_TO_TICKS(20)); continue; }
     client.setTimeout(1500);
     String request = client.readStringUntil('\n');
@@ -109,6 +126,13 @@ static void audioStreamTask(void *) {
       uint8_t wav[44]; audioWavHeader(wav, total);
       if (audioWriteAll(client, wav, sizeof wav)) {
         for (uint32_t block = track.startBlock; block < track.endBlock; ) {
+          // MPD may request another track before the old socket notices its
+          // disconnect. Cancel at block boundaries so the next GET does not
+          // time out behind the previous full-length CD stream.
+          if (audioCheckReplacement(pending)) {
+            Serial.printf("[Audio Input] switching streams at block %lu\n", (unsigned long)block);
+            break;
+          }
           uint32_t blocks = (track.endBlock - block < 8) ? track.endBlock - block : 8;
           if (!audioReader(block, blocks, pcm, sizeof pcm) ||
               !audioWriteAll(client, pcm, blocks * audioFormat.bytesPerBlock)) {
