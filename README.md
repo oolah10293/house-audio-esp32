@@ -4,7 +4,7 @@
 
 **Read this before touching the Lite-On SOHW-1633SX CD sketch or sending any CD files.**
 
-- The **current user-facing ESP32 CD package name** is `LiteOn CD player 2.0.zip`. The **only user-facing Pi integration package name** is `HouseMusic_CD_Pi.zip`.
+- **Current Lite-On CD release:** `LiteOn CD player 3.3` (compiled source `8fe9715801497399eafacd8331a9ccf1ee1e15b4`). The user verified Pi OTA installation and reported substantially improved track switching; a few timeout messages remain unexplained. Do not claim the remaining 502/RST failure is conclusively gone without fresh gateway logs. Version 2.0 was a historical package, not the current release. The user-facing Pi integration package name remains `HouseMusic_CD_Pi.zip`.
 - Use a clear version number for successive approved releases. Never hand off names with `Recovery`, `Transport`, `USB`, `Test`, `Auto`, or other suffixes that make versions indistinguishable. Internal Git refs and manifests may carry revision information.
 - Archive must contain a clear `VERSION.txt` stating the **exact commit**, whether automatic-playback identity (`bootSession`/`discRevision`) is present, compile status, and *not yet tested on hardware* where applicable. In the response, identify what's installed versus what's in the new package.
 - Before delivery, verify from the **actual ZIP** that its Arduino sketch contains the intended automatic-playback identifiers and **does not** contain the old webpage declaration `It does not automatically change House Music playback.` Never confuse the old working v0.2 sketch with the automatic-playback candidate again.
