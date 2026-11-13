@@ -26,3 +26,16 @@ Use the existing single-command Pi OTA installer `cd-arduino/tools/install-liteo
 
 ## Field acceptance after user installs 3.3
 Verify OTA-reported exact source SHA. Replay Track 10 -> 4 and Track 11 -> 6 and inspect `house-audio-input-gateway.service` journal for track-specific 502 / reset. Confirm that S3 responds `HTTP/1.1 200 OK` for the intended new track (rather than skipping) and that complete WAV playback, CD detection, autoplay, and playlist restoration still work. A source-level correction alone is not proof of success.
+
+## Build and release checkpoint — 2026-11-13
+- Source correction commits: `5b0163bc6340dcfb6bf2846df3172cfd69102bc3` plus diagnostic formatting `91a4da121e2b930a3c2b2c370f21f69504a1911c`.
+- **Authorized compiled source HEAD:** `8fe9715801497399eafacd8331a9ccf1ee1e15b4`. The marker commit changed only `cd-arduino/ci/authorized-build-request.txt`.
+- **Build PASS:** https://github.com/oolah10293/house-audio-esp32/actions/runs/43489668762 . All steps passed: authorized marker, checkout, Arduino-ESP32 2.0.14 installation, XIAO ESP32-S3 compile, versioned 3.3 archive and SHA/credential validation, artifact upload.
+- **Published pinned existing build PASS:** https://github.com/oolah10293/house-audio-esp32/actions/runs/43490039922 . No separate recompilation.
+- Release URL: https://github.com/oolah10293/house-audio-esp32/releases/tag/liteon-cd-3.3 .
+- **Published artifact:** `LiteOn.CD.player.3.3.zip`, 547,109 bytes, SHA-256 `7bbc6832d8f1cc2b437e96a16699e79fb89e7bdcdf57ad54c052f0effaf7ed8c`. Actual ZIP independently opened and integrity-checked; includes source snapshot, placeholder Wi-Fi config, exact-source SHA, manifest, precompiled OTA .bin, and uploader.
+- Binary `HouseAudioCDInput.ino.bin`: 799,616 bytes, SHA-256 `2345a32910a88dcc907a7f0f4dc81465fb4960fefa58ea767de3ff0fa5cc2f41`. `VERSION.txt` and generated `BuildIdentity.h` include the exact compiled source SHA.
+- GitHub release API confirmed asset URL matches `cd-arduino/tools/install-liteon.sh` byte-for-byte, and installed expected digest matches independently read ZIP. Installer source updated by commit `6991f03a9588b35483585a351d28c2eda1380c56`.
+- User can install on the Pi with one command:
+  `curl -fsSL https://raw.githubusercontent.com/oolah10293/house-audio-esp32/fix/liteon-usb-transport-recovery/cd-arduino/tools/install-liteon.sh | bash`
+- **Current hardware remains 3.2 until user independently runs OTA and reports result.** No 3.3 physical install/playback/track-switch verification has occurred; the original 502/RST root-cause hypothesis is not proven fixed by compilation.
