@@ -70,7 +70,7 @@ jobs:
           app = Path(os.environ['CD_BUILD_DIR'])/'HouseAudioCDInput.ino.bin'
           assert app.is_file() and app.stat().st_size > 100000, 'Compiled binary missing'
           required = [
-              'HouseAudioCDInput.ino', 'LocalNetworkConfig.h',
+              'HouseAudioCDInput.ino', 'LocalNetworkConfig.h', 'partitions.csv',
               'src/HouseAudioInputTransport.h', 'src/FirmwareService.h',
               'src/BuildIdentity.h',
               'src/usb_host_msc/usbhost_driver.c',
