@@ -66,3 +66,9 @@ Do not merge this package with an old Arduino sketch folder. Do not touch `Local
   `curl -fsSL https://raw.githubusercontent.com/oolah10293/house-audio-esp32/fix/liteon-usb-transport-recovery/cd-arduino/tools/install-liteon.sh | bash`
 - Installer downloads asset into a temporary directory, verifies pinned package SHA, extracts binary/manifest/updater, uses existing Pi OTA uploader with post-reboot exact-commit confirmation, and cleans up. It does not use Windows or require manual ZIP transfer.
 - **Pi execution not yet verified on actual machine**. GitHub API verifies publication; no hardware update assumed until Pi prints `PASS`.
+
+## First real OTA hardware verification — 2026-11-13
+- User ran the single-command Pi installer. First attempt stopped before upload because the initial firmware identity HTTP request timed out. Subsequent curl GET from Pi to S3 at `192.168.1.175` returned HTTP 200 and version 3.0 with source SHA `7f2073f8c1df3167293f7482baadffc1e05e4031`.
+- Second installer invocation fetched and checksum-verified the published archive, observed 3.0, uploaded 798,336-byte image (SHA-256 `5789837fbaae70323ae0c4b7e55aeba123c7a17c145a4c05530e4a6f956a08ec`), received `Image accepted`, then printed `PASS: ESP32 reports expected running commit: 01452e660f3e8fec5d30ba84823cc0cfb5d2d58e`.
+- Running 3.1 image MD5 reported by hardware: `741945608bf41301f27a87be68ee83fb`.
+- **Verified on hardware by user output:** Pi-to-S3 first OTA upload, reboot, new firmware identity. **Not verified by this test:** CD playback, track replacement, or long-term OTA reliability. First timeout cause remains unknown.
