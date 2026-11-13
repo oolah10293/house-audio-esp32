@@ -47,3 +47,16 @@ User explicitly stated: “this is your explicit authorized 3.2 build” on 2026
 - **OTA installation PASS on actual hardware:** `PASS: ESP32 reports expected running commit: 0fc770eb88753e5ef8a523c530f5b5741028f5aa`.
 - New running image MD5: `28fc4aea5e52d4781af59dbdd016d624`.
 - **Not yet verified:** whether the 3.2 stream handoff fixes gateway 502s, MPD track skipping, or CD audio dropout. Test with rapid/sequential track changes against `house-audio-input-gateway.service` journal before claiming behavioral correction.
+
+## Hardware track-switch acceptance — FAIL on 3.2 (2026-11-13)
+- From user's live Pi journal while running installed 3.2:
+  - `13:42:28`: gateway GET `/audio/cd-7452ed8dbd44/10.wav` reported HTTP 200.
+  - `13:42:33`: Track 10 stream failed with `[Errno 32] Broken pipe`; `missing=38811416` bytes.
+  - `13:42:33`: Track 4 failed **before WAV headers** with `[Errno 104] Connection reset by peer`, gateway HTTP **502**.
+  - `13:42:33`: Track 5 GET returned HTTP 200.
+- Browser screenshot independently displayed the MPD error `Failed to decode .../4.wav; got HTTP status 502` while now playing Track 5, confirming a skip.
+- **Definite result:** 3.2 does not resolve this failure. Do not claim the source timeout corrections fixed track switching, despite successful build and OTA install. Preserve as failed hardware acceptance.
+- The Python gateway source `house-audio-server` branch `feature/cd-auto-takeover` / `pi_input/gateway.py` matches the user's pasted proxy code around lines 145-212 and uses `ThreadingHTTPServer` to proxy overlapping requests to S3.
+- Review of S3 `HouseAudioInputTransport.h` confirms **single-stream task** and unconditional **replacement on every new GET /track/**. This can conflict if MPD opens another track to prefetch or prepare it while the chosen stream is active. MPD documentation says its optional input cache prefetches queued songs, but whether it is active on the user's Pi or caused this failure is **unverified**.
+- Gateway access logs are emitted at HTTP response time rather than connection arrival time. The same-second 502 for 4 followed by HTTP 200 for 5 is not proof that track 5 was opened first or that MPD prefetch is the source of the reset.
+- Next diagnostic should preserve **wire-level GET arrival order and TCP RST direction** around one track transition; do not iterate with another blind firmware build. No 3.3 build/package/deployment authorized.
