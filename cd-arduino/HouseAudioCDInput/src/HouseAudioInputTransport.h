@@ -98,7 +98,7 @@ static bool audioCheckReplacement(WiFiClient &candidate, String &candidateLine,
     }
     candidateLine = "";
     candidateSince = millis();
-    Serial.printf("[Audio Input] accepted replacement socket port=%u\\n",
+    Serial.printf("[Audio Input] accepted replacement socket port=%u\n",
                   (unsigned)candidate.remotePort());
   }
 
@@ -110,7 +110,7 @@ static bool audioCheckReplacement(WiFiClient &candidate, String &candidateLine,
     if (next == '\n') {
       if (candidateLine.startsWith("GET /track/")) {
         pendingRequest = candidateLine;
-        Serial.printf("[Audio Input] replacement request port=%u %s\\n",
+        Serial.printf("[Audio Input] replacement request port=%u %s\n",
                       (unsigned)candidate.remotePort(), candidateLine.c_str());
         pending = candidate;
         candidate = WiFiClient(); // pending now owns the waiting connection
@@ -136,7 +136,7 @@ static bool audioCheckReplacement(WiFiClient &candidate, String &candidateLine,
   // A broken/incomplete connection must not permanently block another GET.
   // Four seconds is shorter than the Pi gateway's 8-second upstream timeout.
   if (!audioSocketOpen(candidate) || millis() - candidateSince > 4000UL) {
-    Serial.printf("[Audio Input] drop incomplete request port=%u age=%lu ms\\n",
+    Serial.printf("[Audio Input] drop incomplete request port=%u age=%lu ms\n",
                   (unsigned)candidate.remotePort(), (unsigned long)(millis() - candidateSince));
     candidate.stop();
     candidate = WiFiClient();
@@ -166,7 +166,7 @@ static void audioStreamTask(void *) {
       // received. Carry both its socket and partial line into the idle loop.
       client = candidate;
       request = candidateLine;
-      Serial.printf("[Audio Input] resume partial request port=%u bytes=%u\\n",
+      Serial.printf("[Audio Input] resume partial request port=%u bytes=%u\n",
                     (unsigned)client.remotePort(), (unsigned)request.length());
     } else {
       client = audioServer.available();
@@ -179,7 +179,7 @@ static void audioStreamTask(void *) {
     // Arduino-ESP32 2.0.14 WiFiClient::setTimeout takes SECONDS, not ms.
     client.setTimeout(2);
     if (!completeRequest) request += client.readStringUntil('\n');
-    Serial.printf("[Audio Input] serving socket port=%u %s\\n",
+    Serial.printf("[Audio Input] serving socket port=%u %s\n",
                   (unsigned)client.remotePort(), request.c_str());
     bool head = request.startsWith("HEAD ");
     int begin = request.indexOf("/track/");
