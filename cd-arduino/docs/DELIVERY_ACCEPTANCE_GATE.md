@@ -349,3 +349,38 @@ Do not claim #3 fixed on the running 3.3 until these tests pass.
 **Disposition:** Source-level mitigation staged; runtime
 acceptance **OPEN / untested**. No further alteration of
 working 3.3 required today. Items #4–9 remain open.
+
+## Cleanup item 3 — authorized compile/package/release (2026-11-13)
+
+The user replied "authorized" after item #3 source-only
+TOC/data-only disc mitigation was staged, authorizing a build/package
+for hardware acceptance. This authorization was not treated as
+permission to install/flash the ESP32 remotely.
+
+**Verification completed, not inferred:**
+- Compile and package from exact SHA
+  `f7741b4c9faf160e84c8ca9fb5dde6da7989d59c`:
+  https://github.com/oolah10293/house-audio-esp32/actions/runs/43546527447
+  all steps PASSED, pinned Arduino-ESP32 2.0.14.
+- The released image was taken from that **existing** successful build,
+  not recompiled: publishing job PASS
+  https://github.com/oolah10293/house-audio-esp32/actions/runs/43546807420 .
+- GitHub release tag `liteon-cd-3.4` target = compiled SHA.
+  Asset `LiteOn.CD.player.3.4.zip`, 547848 bytes;
+  SHA-256 `ec0c620c1d24138dc534a5f9c01ff44db16cbc18d7d5550ed0729f12da50fcad`.
+  Binary `HouseAudioCDInput.ino.bin`: 800192 bytes,
+  SHA-256 `bd402601568a3ed0b35e8b4210fed97d0916913393d30d145ec69f5844fdab1c`.
+  Verified downloaded Actions artifact ZIP and internal ZIP
+  contents, exact source, files and BIN hashes.
+- One-command Pi installer `cd-arduino/tools/install-liteon.sh`
+  now points at the verified 3.4 release and exact ZIP SHA-256.
+  Complete deliverable instructions and acceptance criteria:
+  `cd-arduino/docs/CD_PLAYER_3_4_INSTALL.md`.
+
+**Status:** #3 source fix = COMMITTED, COMPILED, PACKAGED AND
+PUBLISHED. **Hardware acceptance NOT VERIFIED, still OPEN**.
+The last user-confirmed device is 3.3; no Pi OTA or S3 flash
+performed by the assistant. Verify audio CD -> data-only CD clears
+old tracks; data-only -> audio CD restores correct list; normal
+playback remains sound before accepting #3. No unrelated #4-9
+work was authorized by this approval.
