@@ -204,3 +204,52 @@ reproduced. If unhealthy, compare failure text/counters before and
 after one manual rescan, with no firmware or power change.
 Do not trigger new USB timeout tuning, firmware build, package, OTA
 or Pi deployment under this item without separate user authorization.
+
+## Cleanup item 2 — live 3.3 readiness baseline (2026-11-13)
+
+**User-supplied device status output** (existing ESP32-S3 status page,
+via Pi; not a fresh independent ESP32 serial trace):
+
+```text
+Status: Audio CD detected
+Firmware: 3.3
+Source commit: 8fe9715801497399eafacd8331a9ccf1ee1e15b4
+SCSI diagnostic: Drive recovered; TOC refreshed
+Consecutive not-ready checks: 0
+Automatic drive-start attempts: 1
+Disc revision: 1
+Track 1 ... Track 13
+Pi registration: OK (HTTP 200)
+```
+
+**What this establishes:** Firmware identifies 13 audio tracks
+and successfully registers with the Pi at the observation.
+The displayed recovery diagnostic is emitted by the exact installed
+3.3 sketch when an earlier `TEST UNIT READY` polling failure occurred
+(`failures > 0`) and subsequent readiness plus TOC read succeeded.
+The nonzero automatic drive-start counter means this discTask
+session attempted the non-ejecting START command once; the result
+does not establish that this particular command *caused* successful
+recovery. Zero consecutive failures indicates the poll failure count
+was reset by successful readiness. `discRevision: 1` records a disc
+identity observed; it is not the number of retries or recovery events.
+Likewise the status line does not reveal whether any prior error
+was USB timeout `0x2`, spin-up latency, or another response.
+
+**Distinguish from original fault:** A transient not-ready condition
+was recovered during the observed session, **but** the old persistent
+device-connected/no-tracks problem (which survived ESP32 reboot and
+manual rescan in an earlier firmware) was not reproduced here.
+Do not mark the original fault cured or claim BOT recovery's cause
+is isolated. Successful detection is a healthy current baseline,
+not a negative long-duration test.
+
+**Next least-disruptive question:** Determine whether the
+connected-but-no-tracks condition has recurred at all on firmware 3.3.
+If not, treat as *not observed yet on 3.3*, leave diagnostic
+watchpoint open, and don't forcibly perturb the working drive to
+simulate a different failure. If it has recurred, immediately capture
+status/diagnostic/counters at failure before reboot/rescan; then run
+one controlled recovery check. #3–9 remain open, untouched.
+No code modifications, firmware build, packaging, flashing, or
+deployment authorized or performed in this checkpoint.
