@@ -7,6 +7,24 @@ Android acceptance status belongs in the [smb-music-player](https://github.com/o
 These nodes are intended to hide inside vintage radios, stereos, powered speakers, or small standalone boxes and make them outputs for the single house playback session.
 
 
+## Rio recovery checkpoint — November 14, 2026
+
+Following severe 2.4 GHz congestion and synchronized-audio dropouts, the user
+reported that disconnecting Rio immediately restored playback. Rio's cleanup
+is committed **on this source branch** (`cb5cd61`, `4dab850`), not on `main`.
+It removes an old spoofed MAC address and pins the Snapclient revision to
+the one used by Bose while preserving Rio's DSP and audio-follow behavior.
+
+After those commits, the user reported installing the revised Rio YAML,
+removing the obsolete Pi registration, registering its native identity, and
+playing CD audio to **six listening nodes including Rio for two songs without
+dropouts**. Those are user-observed field results; they do not identify which
+change caused the improvement or establish long-run stability.
+
+Read [Rio component documentation](components/house_rio/README.md) and
+[the field checkpoint](docs/RIO_2026-11-14_FIELD_CHECKPOINT.md) for the
+source-versus-hardware evidence and remaining validation items.
+
 ## Core production behavior
 
 In the finished system, an ESP32 node is a **renderer**, not an independent music player.
