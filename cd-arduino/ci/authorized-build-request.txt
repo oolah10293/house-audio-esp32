@@ -1,2 +1,3 @@
-# User explicitly authorized the LiteOn CD player 3.3 connection-state correction, build and release in chat.
-BUILD_AND_PACKAGE 20261113-liteon-cd-3_3-upstream-network-fix
+# User explicitly authorized the LiteOn CD item #3 data-only TOC correction firmware build/package in chat on 2026-11-13.
+# This marker-only commit triggers the exact-source 3.4 CI compilation and ZIP integrity checks.
+BUILD_AND_PACKAGE 20261113-liteon-cd-3_4-data-toc-fix
