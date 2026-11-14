@@ -144,3 +144,40 @@ a fix.
 
 **No source changes, compilation, firmware update, or extra
 hardware tests were performed by this documentation checkpoint.**
+
+## Hardware data-only to audio-CD restoration — user acceptance (2026-11-13)
+
+After the 3.4 user-operated Pi OTA, the physical CD swap was tested
+in both directions:
+
+1. **Audio CD -> data CD: PASS by user screenshot.** ESP32 page
+   displayed `Data CD detected; no audio tracks`,
+   `Data-only CD confirmed; old audio tracks cleared`, and no
+   entries under `CD tracks`. Firmware/source/MD5 matched the
+   verified 3.4 build; disc revision was 2; Pi registration HTTP 200.
+2. **Data CD -> audio CD: PASS by user report.** When asked to replace
+   the data disc with an audio disc and check that its tracks returned,
+   the user responded **"yep, it started playing"**. This directly
+   supports successful resumed audio-CD detection and playback after
+   the data CD. The new track count, discRevision and exact start
+   track were not separately supplied or independently read; do not
+   invent them.
+
+**Acceptance:** Cleanup item #3 **CLOSED / user-accepted** for the
+two requested physical disc-swap directions, including removal of
+stale audio tracks and recovery of audio playback on reinsert.
+The prior uncompiled/untested and pending statements above describe
+older stages of the project; this latest checkpoint supersedes those
+status lines, not their factual history.
+
+**Separate residual tests:** Failure injection for a malformed TOC,
+repeated data-CD persistence over long periods, very fast disc swaps
+and other unusual media remain untested. These are not reasons to
+claim a regression or re-open the now-passed ordinary #3 scenario
+without new evidence. The CD Stop UI discoverability concern is a
+separate documented issue; no inference about its function is made
+from disc auto-play success.
+
+No new firmware code changes, builds, releases, packaging or installs
+were performed at this documentation step. Continue to cleanup #4
+only as a new separately scoped investigation.
