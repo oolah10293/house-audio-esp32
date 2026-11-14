@@ -407,3 +407,27 @@ to disappear or that reinserting an audio CD restores tracks.
 See `CD_PLAYER_3_4_INSTALL.md` for the first single test and
 complete acceptance sequence. #4-9 still open; no extra build
 or installation in this documentation checkpoint.
+
+## Cleanup #3 — final bidirectional disc-swap field acceptance (2026-11-13)
+
+**Current status: #3 CLOSED / field-accepted for ordinary data-only
+and audio CD swaps.** Running firmware 3.4 identity was verified by
+user-operated Pi OTA against compiled SHA
+`f7741b4c9faf160e84c8ca9fb5dde6da7989d59c`.
+A physical S3 screenshot then confirmed that an inserted data-only
+disc was identified correctly and the old audio track list was
+empty. The user subsequently replaced that disc with an audio CD
+and confirmed, **"yep, it started playing"**.
+
+These observations cover the core #3 acceptance scenario in both
+directions. Exact new audio track count or `discRevision` was not
+supplied, and malformed-TOC failure injection / long-duration
+polling were not exercised. Do not conflate this field acceptance
+with proving all hypothetical media behavior. The CD UI Stop button
+discoverability issue belongs to a later separate item.
+
+See detailed physical acceptance in
+`cd-arduino/docs/CD_PLAYER_3_4_INSTALL.md`, commit
+`c2cf58ddb9b4db02ae08458140669b222edd9810`.
+No source edit, compile, package, new release, OTA or other Pi action
+performed as part of this documentation checkpoint.
