@@ -384,3 +384,26 @@ performed by the assistant. Verify audio CD -> data-only CD clears
 old tracks; data-only -> audio CD restores correct list; normal
 playback remains sound before accepting #3. No unrelated #4-9
 work was authorized by this approval.
+
+## Cleanup #3 — Pi OTA 3.4 reported PASS; disc-swap test OPEN (2026-11-13)
+
+**Latest field checkpoint** supersedes earlier "running 3.3"
+status recorded above: The user ran the pinned Pi OTA installer,
+which reported 3.3 source `8fe9715801497399eafacd8331a9ccf1ee1e15b4`
+as prior installed firmware, verified and uploaded an
+800192-byte binary with SHA-256
+`bd402601568a3ed0b35e8b4210fed97d0916913393d30d145ec69f5844fdab1c`,
+then verified the rebooted running image's source SHA
+`f7741b4c9faf160e84c8ca9fb5dde6da7989d59c`
+(3.4 exact compiled SHA); image MD5
+`c6c556a7d44df7cf519224e5b396ca63`.
+These are **user-supplied Pi terminal results**, not direct independent
+access to the physical device.
+
+**Installation identity: PASS. Feature acceptance: OPEN.**
+The source correction is now physically installed per the Pi's
+report. No evidence yet that data-only TOCs cause the old tracks
+to disappear or that reinserting an audio CD restores tracks.
+See `CD_PLAYER_3_4_INSTALL.md` for the first single test and
+complete acceptance sequence. #4-9 still open; no extra build
+or installation in this documentation checkpoint.
