@@ -1,0 +1,3 @@
+# User explicitly authorized the new #3 firmware build/package for hardware testing in chat.
+# Publishes only the existing checksum-verified exact-SHA 3.4 image, without recompilation or flashing.
+PUBLISH_EXISTING_3_4 20261113-item3-verified-existing-artifact
