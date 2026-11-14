@@ -1,8 +1,8 @@
 # Rio 4-ohm subwoofer - XIAO ESP32-S3 + PCM5102A + TPA3118 mono amp.
 # The TPA3118 has no ESP32 mute/enable wire. "Follow" therefore mutes
 # decoded PCM in DSP, NOT the amplifier's 20 V supply or power consumption.
-# Existing identity preserved across replacement S3:
-#   Snapcast ID / Wi-Fi MAC: 44:BD:8D:EC:51:80.
+# Use this ESP32's native Wi-Fi MAC / Snapcast ID, not an old board's MAC.
+# The Pi subwoofer registration must be updated for the new renderer ID.
 #
 # Pin mapping: PCM5102A LCK -> GPIO4, BCK -> GPIO5, DIN -> GPIO6.
 # DAC L OUT -> amplifier INPUT+; DAC analog GND -> amplifier INPUT-.
@@ -16,17 +16,7 @@ esphome:
   name: ${device_name}
   friendly_name: ${device_friendly_name}
   min_version: 2026.4.0
-  includes:
-    - <esp_mac.h>
   on_boot:
-    - priority: 900
-      then:
-        - lambda: |-
-            const uint8_t old_mac[6] = {0x44, 0xBD, 0x8D, 0xEC, 0x51, 0x80};
-            const esp_err_t result = esp_base_mac_addr_set(old_mac);
-            if (result != ESP_OK) {
-              ESP_LOGE("rio_mac", "MAC override failed: %d", result);
-            }
     - priority: -100
       then:
         - lambda: |-
@@ -68,18 +58,13 @@ network:
   enable_ipv6: false
 
 external_components:
-  - source:
-      type: git
-      url: https://github.com/oolah10293/esphome
-      ref: fix-snapclient-log-tag
+  # Exact same immutable Snapclient source revision as the working Bose sub.
+  - source: github://luar123/esphome@4d3280bd35fdd970e628a22197f19ab0fded1a39
     components: [snapclient]
-    refresh: 1d
+    refresh: 0s
 
-  # Working branch: keep pinned until reviewed/merged.
-  - source:
-      type: git
-      url: https://github.com/oolah10293/house-audio-esp32
-      ref: feature/rio-audio-follow
+  # Pin Rio's current DSP and Pi-follow components; no moving-branch refresh.
+  - source: github://oolah10293/house-audio-esp32@18503e36b866a6c9eed580359132503b3725cdb2
     components: [house_sub_dsp, house_rio]
     refresh: 0s
 
