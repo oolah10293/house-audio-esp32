@@ -287,3 +287,65 @@ failure stage. Then evaluate one bounded recovery action at a time.
 **Next:** Proceed to cleanup item #3 as a separate investigation;
 all later items remain open. No firmware edit, build, package,
 installer, OTA or Pi deployment was authorized or performed here.
+
+## Cleanup item 3 — valid data-only TOC versus ambiguous TOC (2026-11-13)
+
+**Observed? No.** This is a **source-verified edge case**, not a
+user-reported data-only-disc failure on running firmware 3.3.
+Compiled/running revision remains `8fe9715801497399eafacd8331a9ccf1ee1e15b4`.
+
+**Original source behavior:** `HouseAudioCDInput.ino` obtains a valid
+READ TOC table, parses audio descriptors into `fresh[]`, and when
+`count == 0` unconditionally retains `discTracks[]` from the last
+audio CD. This is intentional protection against ambiguous/failed
+TOC observations, but on a legitimately data-only CD, previously
+advertised audio numbers could remain visible on the node, be
+registered with the Pi and lead to invalid CD track selections.
+The present TOC parser alone proves the potential state; no
+physical reproduction was claimed.
+
+**Small source-only policy correction (NOT compiled or flashed):**
+- `f75fb92d4f04783268f624ee80426a0ed6c251ad` changes
+  `readDiscToc()` to report whether it saw audio, a pending
+  valid data-only candidate, confirmed data-only, or a retryable
+  ambiguous/failed result. A candidate data-only TOC requires
+  a properly bounded table, ordinary data-track descriptors
+  with increasing LBA ranges and a lead-out descriptor.
+- A first well-formed all-data TOC keeps the last known-good
+  audio list. The next idle poll (~2s) re-reads the TOC;
+  only a **second identical successful all-data read** clears
+  the old tracks, records the new disc identity/revision,
+  and reports `Data CD detected; no audio tracks`.
+- Transport errors, malformed/zero-audio ambiguous results and
+  successful audio TOCs do not incorrectly confirm data-only.
+  Normal audio detection and 15-second periodic TOC polling remain.
+- `b1c9e9fcbcc09ed06c2949b5b63238080cff05ab` explicitly
+  resets the data-only candidate on a failed TEST UNIT READY,
+  so two reads separated by an unready event are not treated
+  as consecutive evidence.
+- The existing Pi registration emits `status: no_disc`
+  and `tracks: []` when the confirmed data-only disc has zero
+  audio tracks. This is a protocol limitation: `no_disc`
+  currently means **no playable audio CD**, not necessarily
+  physically empty tray. Do not change Pi behavior under #3.
+
+**Static review only:** Current GitHub source was re-fetched after
+the edits and eight source-structure checks were performed for
+the TOC confirmation, valid data descriptors/lead-out, state
+reset, next-poll recheck, and audio path preservation. This
+is not a compiled firmware test, behavior simulation, GitHub
+CI compile, or hardware evidence. The user has *not*
+authorized a new build, installer, OTA or firmware deployment.
+
+**Hardware acceptance after a separately authorized firmware
+build/installation:** Verify audio CD => data-only CD clears
+the old track list and never advertises stale tracks after
+confirmation; repeat data-only polling remains empty; data-only
+CD => audio CD restores the correct tracks and increments
+revision; a single invalid/failed or partial TOC retains the
+previous good audio disc; repeat normal audio-CD playback.
+Do not claim #3 fixed on the running 3.3 until these tests pass.
+
+**Disposition:** Source-level mitigation staged; runtime
+acceptance **OPEN / untested**. No further alteration of
+working 3.3 required today. Items #4–9 remain open.
