@@ -112,3 +112,35 @@ track list disappears. Then restore an audio CD and check its
 new enumeration; don't conflate OTA identity with #3 functionality.
 No further builds, releases, or flashes authorized or performed
 by this checkpoint.
+
+## Hardware data-only CD acceptance — live browser screenshot (2026-11-13)
+
+**User-supplied physical ESP32-S3 browser screenshot**, at
+`http://192.168.1.175/` after the 3.4 OTA, confirms:
+
+- `Status: Data CD detected; no audio tracks`.
+- `SCSI diagnostic: Data-only CD confirmed; old audio tracks cleared`.
+- `CD tracks` section is empty (only the `Rescan CD` control remains).
+- `Firmware: 3.4`; source SHA
+  `f7741b4c9faf160e84c8ca9fb5dde6da7989d59c`;
+  running image MD5 `c6c556a7d44df7cf519224e5b396ca63`.
+- `Disc revision: 2`, consecutive not-ready checks 0,
+  automatic drive-start attempts 1, and Pi registration
+  `OK (HTTP 200)`.
+
+**Acceptance:** Data-only CD detection and removal of stale audio
+tracks **PASS on physical hardware**, by screenshot. This is
+strong evidence that the new two-matching-TOC confirmation path
+completed. It is not proof of all disc-swap edge cases.
+
+**Still pending:** Insert a normal audio CD after the data CD;
+verify audio tracks reappear (and optionally confirm ordinary
+track playback); check repeat poll persistence. The user had
+also reported `i can't stop playback` before this screenshot.
+The response suggested Pi `/stop` and direct MPD `mpc stop`,
+but **no result of those commands was provided**; leave the
+CD Stop control concern unverified instead of silently claiming
+a fix.
+
+**No source changes, compilation, firmware update, or extra
+hardware tests were performed by this documentation checkpoint.**
