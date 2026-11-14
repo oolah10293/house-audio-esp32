@@ -7,14 +7,18 @@ PCM stream, with a 10 ms fade on transitions, while leaving the Snapcast
 connection, transport, and audio stream synchronized.
 
 Source configuration: [firmware/rio-subwoofer.yaml](../../firmware/rio-subwoofer.yaml)
-(contains the verified replacement S3's software MAC override
-`44:BD:8D:EC:51:80`).
+(uses the ESP32's native MAC; no MAC spoofing).
 
 ## Behavior
 
 - At boot, start with DSP audio muted until the Pi returns valid demand.
-- Discover Rio's existing registered subwoofer ID from `GET /api/subwoofers`
-  by matching its Snapcast renderer ID, not by guessing a sub ID or hostname.
+- Discover Rio's registered subwoofer ID from `GET /api/subwoofers`
+  by matching its native Snapcast renderer ID, just as Bose does.
+- The ESPHome Snapclient source is pinned to the exact immutable revision
+  already used by Bose. Rio's house-specific DSP and follow components are
+  also pinned to an immutable revision (no moving branch).
+- Rio's periodic Pi demand/status reports remain, as they are required for
+  automatic follow; they do not control the TPA3118 power supply.
 - Poll `GET /api/subwoofers/<id>/demand` every 2 seconds in a separate
   FreeRTOS task (not in the ESPHome main loop).
 - When the assigned normal speaker (currently Motorola Radio) is present/
@@ -38,10 +42,27 @@ idle current. Hardware standby would require a deliberately wired
 enable/mute circuit or another external power control, neither of which is
 part of this change.
 
+## Important: one-time Pi registration after the native-MAC change
+
+The existing Rio registration on the Pi refers to the OLD spoofed
+`44:BD:8D:EC:51:80` ID. Without the override, Snapserver will recognize
+the replacement XIAO S3 by its real Wi-Fi MAC. The current Pi API refuses
+to change an existing subwoofer's `rendererId` and offers no delete route.
+
+At an explicitly authorized deployment, allow the Rio's real renderer ID
+to appear and register it as a new dependent Rio subwoofer in the Pi web
+interface with the original Motorola Radio parent and intended fallback
+volume. This leaves the old registration stale; a later Pi cleanup is
+required to remove or migrate it cleanly. Never claim the existing
+assignment will follow the name or automatically retarget.
+
 ## Testing/deployment status
 
 This is source work only. The replacement ESP32 has **not** been reflashed,
-and the Pi has **not** been updated by this change. Do not deploy the new
+and the Pi has **not** been updated by this change. No compile, flash or
+runtime validation was performed. Removing MAC spoofing and pinning
+dependencies do NOT by themselves prove a fix for the 2.4-GHz interference
+or airtime-utilization problem. Do not deploy the new
 status values unless the Pi's companion server change is installed first.
 
 Before treating it as accepted firmware, validate ESPHome compilation against
