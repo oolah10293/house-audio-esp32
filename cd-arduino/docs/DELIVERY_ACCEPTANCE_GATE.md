@@ -149,3 +149,58 @@ USB error/timeout follow-up.
 
 **Restrictions:** this audit is documentation-only. No firmware source
 changes, compilation, build, ZIP packaging, publish, or OTA initiated.
+
+## Cleanup item 2 — persistent USB connection but CD not ready (2026-11-13)
+
+**Status: OPEN — baseline diagnostic pending.** This is item #2
+in the sequential cross-repository CD cleanup. Item #1 (Pi
+Next/Previous and track-1 boundary) is user-accepted and closed in
+`oolah10293/house-audio-server` commit `a54f0253`.
+Items #3–9 remain open and untouched.
+
+**Original field evidence from earlier CD conversation** (also recorded
+in `CD_SCSI_REGRESSION_REVIEW.md` and
+`CD_STREAM_POLLING_SOURCE_CHECKPOINT_2026-11-12.md`):
+USB device remained connected, but readiness, sense and non-ejecting
+start commands sometimes returned `0x2`; track list could be empty.
+An S3 restart restored Pi MP3 behavior, **not** CD tracks; a manual
+rescan also failed. No serial log identifying exact BOT transfer
+stage was supplied. Do not claim recovery already proved.
+
+**Verified installed-source inspection:** compiled 3.3 commit
+`8fe9715801497399eafacd8331a9ccf1ee1e15b4`, not the later
+documentation-only branch head.
+- `HouseAudioCDInput.ino` `discTask()` polls SCSI TEST UNIT READY
+  every ~2 seconds when no active WAV lease owns the USB/SCSI device.
+  A successful readiness response triggers TOC collection if first
+  detection, recovery, user rescan or 15-second recheck. Failure calls
+  REQUEST SENSE and distinguishes decoded medium-not-present sense
+  from an unresolved transport error; no decoded removal means a
+  former track list is normally retained.
+- After 3 failed readiness polls the code attempts the non-ejecting
+  START STOP UNIT command, at most once per ~30 seconds thereafter.
+  This is **not** a physical drive power cycle or USB re-enumeration.
+- USB Mass Storage BOT CBW/CSW failures invoke
+  `usbhost_resetRecovery()` as applicable, attempting BOT reset
+  and clearing endpoints. The 1,500-ms CBW/selected CSW ceiling is
+  still provisional and belongs to item #7, not a proven readiness
+  repair.
+- `0x2` is compatible with a raw USB transfer timeout,
+  **not proof** of SCSI sense key 02 or absent disc. Without stage
+  logs, do not identify a cable, power supply, drive, S3 host or
+  firmware scheduling as the established root cause.
+- The existing local status page at `http://192.168.1.175/`
+  exposes Status, SCSI diagnostic, consecutive failures, automatic
+  drive-start count, boot session, disc revision and track list.
+  A single healthy snapshot cannot prove the old intermittent bug
+  is gone.
+
+**Next minimal non-disruptive baseline:** With the CD/drive powered
+as presently configured, read the ESP32 status page from the Pi
+using `curl`; capture status, diagnostic, counters and track list.
+If currently healthy, record this as a baseline and choose a controlled
+recovery test rather than pretending spontaneous failure was
+reproduced. If unhealthy, compare failure text/counters before and
+after one manual rescan, with no firmware or power change.
+Do not trigger new USB timeout tuning, firmware build, package, OTA
+or Pi deployment under this item without separate user authorization.
