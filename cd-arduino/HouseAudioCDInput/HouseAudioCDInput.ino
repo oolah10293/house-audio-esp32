@@ -39,6 +39,16 @@ static uint32_t discRevision = 0;
 static uint32_t discFingerprint = 0;
 static bool discEverDetected = false;
 static bool physicalMediaMissing = false;
+// Treat a valid data-only TOC differently from an ambiguous or failed TOC.
+// Two consecutive matching valid reads are required before hiding old tracks.
+enum class TocReadResult : uint8_t { Retry, Audio, PendingDataOnly, DataOnly };
+static uint32_t pendingDataOnlyFingerprint = 0;
+static bool pendingDataOnlyScan = false;
+static bool confirmedDataOnly = false;
+static TocReadResult tocReadFailed() {
+  pendingDataOnlyScan = false;
+  return TocReadResult::Retry;
+}
 static constexpr uint32_t CD_POLL_MS = 2000;
 static constexpr uint32_t CD_TOC_RECHECK_MS = 15000;
 static constexpr uint32_t KEEP_TRACKS_THROUGH_FAILURES = 4; // retain through brief glitches (8 seconds)
@@ -121,13 +131,15 @@ static size_t snapshotTracks(AudioInputTrack *out, size_t capacity) {
 }
 
 static void forgetDisc() {
+  pendingDataOnlyScan = false;
+  confirmedDataOnly = false;
   if (xSemaphoreTake(tocMutex, pdMS_TO_TICKS(200)) == pdTRUE) {
     discTrackCount = 0;
     xSemaphoreGive(tocMutex);
   }
 }
 
-static bool readDiscToc() {
+static TocReadResult readDiscToc() {
   uint8_t head[4] = {};
   uint32_t size = sizeof head;
   esp_err_t err = usbhost_scsi_readTOC(false, 0, head, &size);
@@ -136,12 +148,12 @@ static bool readDiscToc() {
     snprintf(note, sizeof note, "READ TOC header error: %s (0x%X), %lu/4 bytes",
              esp_err_to_name(err), (unsigned)err, (unsigned long)size);
     setScsiDiagnostic(note, 0, recoveryAttempts);
-    return false;
+    return tocReadFailed();
   }
   const size_t total = be16(head) + 2u;
   if (total < 12 || total > sizeof tocBuffer || ((total - 4) % 8) != 0) {
     setScsiDiagnostic("READ TOC returned an invalid table length", 0, recoveryAttempts);
-    return false;
+    return tocReadFailed();
   }
   size = (uint32_t)total;
   err = usbhost_scsi_readTOC(false, 0, tocBuffer, &size);
@@ -150,17 +162,23 @@ static bool readDiscToc() {
     snprintf(note, sizeof note, "READ TOC data error: %s (0x%X), %lu/%u bytes",
              esp_err_to_name(err), (unsigned)err, (unsigned long)size, (unsigned)total);
     setScsiDiagnostic(note, 0, recoveryAttempts);
-    return false;
+    return tocReadFailed();
   }
   const size_t entries = (total - 4) / 8;
   AudioInputTrack fresh[99];
   size_t count = 0;
+  // Only a complete, well-formed sequence of data-track descriptors
+  // followed by lead-out counts as a candidate data-only CD. Malformed,
+  // ambiguous, and failed TOCs continue to preserve known-good tracks.
+  bool validDataOnlyToc = entries >= 2 &&
+      tocBuffer[4 + (entries - 1) * 8 + 2] == 0xAA;
   for (size_t i = 0; i + 1 < entries; ++i) {
     const uint8_t *desc = tocBuffer + 4 + i * 8;
     const uint8_t *next = desc + 8;
-    if (desc[2] == 0xAA || (desc[1] & 0x04) != 0) continue;
     uint32_t start = be32(desc + 4), end = be32(next + 4);
-    if (end <= start || desc[2] < 1 || desc[2] > 99) continue;
+    const bool validTrack = desc[2] >= 1 && desc[2] <= 99 && end > start;
+    if (!validTrack || (desc[1] & 0x04) == 0) validDataOnlyToc = false;
+    if (!validTrack || (desc[1] & 0x04) != 0) continue;
     if (count < 99) fresh[count++] = {desc[2], start, end};
   }
   // Fingerprint the TOC, not just the track count. A new disc can have
@@ -170,29 +188,57 @@ static bool readDiscToc() {
     fingerprint ^= tocBuffer[i];
     fingerprint *= 16777619u;
   }
-  if (xSemaphoreTake(tocMutex, pdMS_TO_TICKS(250)) != pdTRUE) return false;
-  if (count && (!discEverDetected || physicalMediaMissing || fingerprint != discFingerprint)) {
-    ++discRevision;
-    if (discRevision == 0) ++discRevision;
-  }
-  if (count) {
-    discEverDetected = true;
-    discFingerprint = fingerprint;
-    physicalMediaMissing = false;
-  }
-  // A syntactically successful but unusable TOC does not prove the disc
-  // disappeared. Retain the last verified list until confirmed removal.
+  if (xSemaphoreTake(tocMutex, pdMS_TO_TICKS(250)) != pdTRUE) return tocReadFailed();
   if (!count) {
+    if (validDataOnlyToc) {
+      if (confirmedDataOnly && !physicalMediaMissing && fingerprint == discFingerprint) {
+        xSemaphoreGive(tocMutex);
+        return TocReadResult::DataOnly;
+      }
+      if (pendingDataOnlyScan && pendingDataOnlyFingerprint == fingerprint) {
+        // A second identical, valid data-only TOC establishes a new disc
+        // identity. Do not expose the old audio-CD tracks to the Pi.
+        if (!discEverDetected || physicalMediaMissing || fingerprint != discFingerprint) {
+          ++discRevision;
+          if (discRevision == 0) ++discRevision;
+        }
+        discEverDetected = true;
+        discFingerprint = fingerprint;
+        physicalMediaMissing = false;
+        discTrackCount = 0;
+        confirmedDataOnly = true;
+        pendingDataOnlyScan = false;
+        xSemaphoreGive(tocMutex);
+        setScsiDiagnostic("Data-only CD confirmed; old audio tracks cleared", 0, recoveryAttempts);
+        return TocReadResult::DataOnly;
+      }
+      pendingDataOnlyFingerprint = fingerprint;
+      pendingDataOnlyScan = true;
+      xSemaphoreGive(tocMutex);
+      setScsiDiagnostic("Possible data-only CD; confirming TOC before clearing tracks", 0, recoveryAttempts);
+      return TocReadResult::PendingDataOnly;
+    }
+    // Zero audio tracks with an incomplete or malformed table is ambiguous.
+    // Keep the last known-good tracks and retry without claiming removal.
     xSemaphoreGive(tocMutex);
     char note[180];
     snprintf(note, sizeof note, "READ TOC produced 0 audio tracks (%u descriptors); keeping previous list", (unsigned)entries);
     setScsiDiagnostic(note, 0, recoveryAttempts);
-    return false;
+    return tocReadFailed();
   }
+  pendingDataOnlyScan = false;
+  confirmedDataOnly = false;
+  if (!discEverDetected || physicalMediaMissing || fingerprint != discFingerprint) {
+    ++discRevision;
+    if (discRevision == 0) ++discRevision;
+  }
+  discEverDetected = true;
+  discFingerprint = fingerprint;
+  physicalMediaMissing = false;
   memcpy(discTracks, fresh, count * sizeof(AudioInputTrack));
   discTrackCount = count;
   xSemaphoreGive(tocMutex);
-  return true;
+  return TocReadResult::Audio;
 }
 
 // Hardware-specific callback. Retries are confined to the same LBA; a failed
@@ -307,7 +353,8 @@ static void discTask(void *) {
         if (!haveTracks || wasRecovering || forceTocScan || scheduled) {
           forceTocScan = false;
           lastTocScan = millis();
-          if (readDiscToc()) {
+          TocReadResult toc = readDiscToc();
+          if (toc == TocReadResult::Audio) {
             haveTracks = true;
             setScsiDiagnostic(wasRecovering ? "Drive recovered; TOC refreshed" : "Drive ready; TOC read OK", 0, attempts);
             // Reapply after a genuine disc identity change, even if the
@@ -322,6 +369,15 @@ static void discTask(void *) {
               // and actual rotational speed require hardware verification.
             }
             setStatus("Audio CD detected");
+          } else if (toc == TocReadResult::DataOnly) {
+            haveTracks = false;
+            speedApplied = false;
+            setStatus("Data CD detected; no audio tracks");
+          } else if (toc == TocReadResult::PendingDataOnly) {
+            // Recheck on the next idle poll (about 2 seconds), rather
+            // than keeping the previous CD's tracks for another 15 seconds.
+            forceTocScan = true;
+            setStatus("Confirming data-only CD; keeping previous tracks");
           } else {
             // A single TOC failure must not erase known-good tracks.
             if (!haveTracks) setStatus("Drive ready; retrying CD track read");
