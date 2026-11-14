@@ -77,3 +77,38 @@ physical acceptance is still pending.
 reported as 3.3, source `8fe9715801497399eafacd8331a9ccf1ee1e15b4`.
 Do not claim 3.4 installed or stale-track bug fixed on hardware
 until user supplies exact OTA identity and disc-swap outcomes.
+
+## User-operated 3.4 Pi OTA success (2026-11-13 local)
+
+**User-supplied Pi terminal output (hardware identity acceptance):**
+```text
+LiteOn CD player 3.4 — Pi OTA installer
+Downloading verified firmware from GitHub...
+Verified firmware archive. Starting OTA from this Pi...
+Currently running: {"bootSession":"d0b63e7f9aa7b55c","freeSketchSpace":1310720,"sketchMd5":"0e0e4da19597308057924aaf8a65d770","sourceSha":"8fe9715801497399eafacd8331a9ccf1ee1e15b4","version":"3.3"}
+Uploading 800192 bytes (SHA256 bd402601568a3ed0b35e8b4210fed97d0916913393d30d145ec69f5844fdab1c) from the Pi...
+Image accepted; waiting for reboot and firmware identity...
+PASS: ESP32 reports expected running commit: f7741b4c9faf160e84c8ca9fb5dde6da7989d59c
+Running image MD5: c6c556a7d44df7cf519224e5b396ca63
+```
+
+**Verified from the user-provided terminal output:** 3.3 was running
+before update; checksum-verified 3.4 firmware archive was downloaded,
+800192-byte binary was uploaded and accepted, and after reboot
+the ESP32 firmware endpoint returned the exact authorized and CI
+compiled source SHA `f7741b4c9faf160e84c8ca9fb5dde6da7989d59c`.
+New reported sketch MD5 is
+`c6c556a7d44df7cf519224e5b396ca63`.
+
+**Status: OTA installation and running-image identity PASS by user
+observation.** The assistant did not run the OTA or directly inspect
+the physical device. **Functionality of data-only TOC confirmation,
+old audio-track clearing, audio-disc restoration, and playback is
+NOT YET hardware verified.** Initial acceptance: with an audio
+CD enumerated, stop playback, swap in a data-only CD, allow idle
+TOC polling and two matching valid reads, check that the ESP32
+status says `Data CD detected; no audio tracks` and the old
+track list disappears. Then restore an audio CD and check its
+new enumeration; don't conflate OTA identity with #3 functionality.
+No further builds, releases, or flashes authorized or performed
+by this checkpoint.
