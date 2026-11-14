@@ -385,6 +385,9 @@ static void discTask(void *) {
           }
         }
       } else {
+        // A failed readiness probe breaks the consecutive-valid-TOC
+        // confirmation sequence; it must not count across USB errors.
+        pendingDataOnlyScan = false;
         if (failures < 0xffffffffu) ++failures;
         char note[180];
         bool noMedium = explainNotReady(ready, note, sizeof note);
