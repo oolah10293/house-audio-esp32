@@ -253,3 +253,37 @@ status/diagnostic/counters at failure before reboot/rescan; then run
 one controlled recovery check. #3–9 remain open, untouched.
 No code modifications, firmware build, packaging, flashing, or
 deployment authorized or performed in this checkpoint.
+
+## Cleanup item 2 — disposition after 3.3 field report (2026-11-13)
+
+**User confirmation:** In direct response to whether the old
+USB-connected/CD-tracks-disappear failure has recurred since installing
+firmware 3.3, user answered **"i have not"**.
+
+**Conclusion for sequential cleanup:** Item #2's *active investigation*
+is **complete / DEFERRED TO MONITORING**, not a verified firmware repair.
+The 3.3 status page currently recognizes all 13 audio tracks, shows
+successful Pi registration (HTTP 200) and reports a recovered readiness
+episode with zero consecutive failures and one drive-start attempt.
+The user has **not observed the original persistent failure on 3.3**.
+There is no reproduced persistent 3.3 fault to debug right now,
+and intentionally disturbing the working USB drive would not
+demonstrate recovery from the historical failure.
+
+**Preserved unresolved risk:** The historical connected-but-no-tracks
+failure previously survived S3 restart and manual rescan; without
+failure-stage serial diagnostics, its USB/SCSI root cause and
+whether 3.3 permanently fixes it remain **unverified**. Do not
+equate this transient successful recovery with reproduction of that
+specific persistent fault. Keep this watchpoint in the backlog.
+
+**If the problem recurs:** Before rebooting or rescanning, capture
+the S3 `http://192.168.1.175/` status, full SCSI diagnostic,
+consecutive-not-ready count, drive-start attempt count,
+disc revision, track list, boot session and Pi registration.
+If available, gather USB serial messages identifying CBW/data/CSW
+failure stage. Then evaluate one bounded recovery action at a time.
+
+**Next:** Proceed to cleanup item #3 as a separate investigation;
+all later items remain open. No firmware edit, build, package,
+installer, OTA or Pi deployment was authorized or performed here.
