@@ -13,3 +13,12 @@ Use the existing Pi OTA helper with verified 3.5 package manifest. Do not flash 
 
 ## Status
 Source checkpoint; build/ZIP verification and hardware acceptance recorded separately when actually completed. No claim of improved Wi-Fi performance until field measurements.
+
+## Verified build and release — 2026-11-20
+
+- Compiled source: `6359c1e0111f4f4ddcc4ecab0f3d41d0825d2fab` on main; Arduino ESP32 2.0.14, XIAO ESP32-S3.
+- [CI run 44771766407](https://github.com/oolah10293/house-audio-esp32/actions/runs/44771766407) completed successfully: compile, exact source/ZIP verification, artifact upload and publication all passed.
+- Sketch: 800197 bytes / 1310720; static global memory 66068 / 327680 bytes.
+- [Published ZIP](https://github.com/oolah10293/house-audio-esp32/releases/download/liteon-cd-3.5/LiteOn.CD.player.3.5.zip): 547648 bytes; SHA-256 `607dafcacf676bc3b173e750e7b0b6f9392a648ccf9b8c8b16270b9d7240c115` (confirmed against release asset metadata).
+- The main-branch installer now pins that exact URL and digest. On the Pi after stopping CD playback: `curl -fsSL https://raw.githubusercontent.com/oolah10293/house-audio-esp32/main/cd-arduino/tools/install-liteon.sh | bash`. Old 3.4 installer remains available from `6359c1e0111f4f4ddcc4ecab0f3d41d0825d2fab` at the same path for rollback.
+- Hardware installation, runtime sleep setting, actual improvement in radio utilization/retries and listening acceptance remain unverified. No Pi/gateway deployment performed.

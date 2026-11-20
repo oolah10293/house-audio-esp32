@@ -6,6 +6,8 @@ Start new work from `main`, not a historical feature branch. See [consolidation 
 
 ## Lite-On CD delivery: versioned names and no ambiguous packages (user requirement)
 
+**Current published candidate: 3.5** — Wi-Fi modem sleep disabled; verified CI build and ZIP, physical installation and network improvement pending. [Installation and exact release evidence](cd-arduino/docs/CD_PLAYER_3_5_INSTALL.md). 3.4 remains the last hardware-confirmed baseline.
+
 **Read this before touching the Lite-On SOHW-1633SX CD sketch or sending any CD files.**
 
 - **Current hardware-confirmed Lite-On CD release:** `LiteOn CD player 3.4` (compiled source `f7741b4c9faf160e84c8ca9fb5dde6da7989d59c`). OTA identity and both audio/data disc-swap directions passed by user report/screenshots; see `cd-arduino/docs/CD_PLAYER_3_4_INSTALL.md`. A few prior timeout messages remain unexplained. Do not claim the remaining 502/RST failure is conclusively gone without fresh gateway logs. Version 2.0 was a historical package, not the current release. The user-facing Pi integration package name remains `HouseMusic_CD_Pi.zip`.

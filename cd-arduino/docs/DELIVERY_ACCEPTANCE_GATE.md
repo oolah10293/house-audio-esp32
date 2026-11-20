@@ -1,6 +1,6 @@
 # Lite-On CD input: mandatory delivery acceptance gate
 
-**2026-11-20:** `main` now holds the working CD source. Historical branch references below describe provenance. The main workflow is manually dispatched only; explicit build/package authorization required. The installed 3.4 image is unchanged.
+**2026-11-20:** `main` now holds the working CD source. Historical branch references below describe provenance. The main workflow allows explicit dispatch or an exact marker-only authorization commit; ordinary source pushes do not build/package. The installed 3.4 image is unchanged. Authorized 3.5 build and publication passed; see CD_PLAYER_3_5_INSTALL.md. Hardware acceptance remains pending.
 
 This is a project checkpoint, not a claim that the firmware is fixed. It applies before any future Lite-On firmware delivery and must be revisited at each revision. Do not build or package without explicit user authorization.
 
