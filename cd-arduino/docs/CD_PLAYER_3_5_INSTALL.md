@@ -28,3 +28,7 @@ Source checkpoint; build/ZIP verification and hardware acceptance recorded separ
 User supplied Pi terminal output from the pinned 3.5 installer. Package checksum verification passed. Before update, the node reported version 3.4, source f7741b4c9faf160e84c8ca9fb5dde6da7989d59c and MD5 c6c556a7d44df7cf519224e5b396ca63. Uploaded application: 800560 bytes, SHA-256 69726d51105d4c74254224eddaa6365daf1a67278e4a02265932cd27641950b4. OTA accepted and after reboot the updater reported exact expected source 6359c1e0111f4f4ddcc4ecab0f3d41d0825d2fab, running MD5 8d222896ade70fde57dbaf1da7a46069.
 
 **PASS — installed-image identity by user-supplied output.** Runtime wifiPowerSave diagnostic and network/playback performance are not yet verified. Next: curl -s http://192.168.1.175/api/firmware; capture actual power-save status before comparing playback. No additional firmware build or deployment performed.
+
+## Runtime Wi-Fi power-save acceptance — 2026-11-20
+
+User supplied `curl -s http://192.168.1.175/api/firmware` output: version 3.5, sourceSha 6359c1e0111f4f4ddcc4ecab0f3d41d0825d2fab, sketchMd5 8d222896ade70fde57dbaf1da7a46069, freeSketchSpace 1310720, wifiPowerSave disabled, bootSession 242327f09cf59451. **PASS: actual driver power-save state reports disabled.** Playback performance, airtime, retries and functional CD regression acceptance remain pending. Compare CD playback with six listening nodes and unchanged AP assignments. Documentation only; no new build or deployment.
