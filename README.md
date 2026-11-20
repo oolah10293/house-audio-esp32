@@ -6,7 +6,7 @@ Start new work from `main`, not a historical feature branch. See [consolidation 
 
 ## Lite-On CD delivery: versioned names and no ambiguous packages (user requirement)
 
-**Current published candidate: 3.5** — Wi-Fi modem sleep disabled; verified CI build and ZIP, physical installation and network improvement pending. [Installation and exact release evidence](cd-arduino/docs/CD_PLAYER_3_5_INSTALL.md). 3.4 remains the last hardware-confirmed baseline.
+**Current installed firmware: 3.5** — verified CI build, ZIP and user-confirmed OTA image identity. Runtime Wi-Fi power-save state and network improvement pending. [Installation and exact release evidence](cd-arduino/docs/CD_PLAYER_3_5_INSTALL.md). 3.4 remains the last functionally accepted rollback baseline.
 
 **Read this before touching the Lite-On SOHW-1633SX CD sketch or sending any CD files.**
 

@@ -22,3 +22,9 @@ Source checkpoint; build/ZIP verification and hardware acceptance recorded separ
 - [Published ZIP](https://github.com/oolah10293/house-audio-esp32/releases/download/liteon-cd-3.5/LiteOn.CD.player.3.5.zip): 547648 bytes; SHA-256 `607dafcacf676bc3b173e750e7b0b6f9392a648ccf9b8c8b16270b9d7240c115` (confirmed against release asset metadata).
 - The main-branch installer now pins that exact URL and digest. On the Pi after stopping CD playback: `curl -fsSL https://raw.githubusercontent.com/oolah10293/house-audio-esp32/main/cd-arduino/tools/install-liteon.sh | bash`. Old 3.4 installer remains available from `6359c1e0111f4f4ddcc4ecab0f3d41d0825d2fab` at the same path for rollback.
 - Hardware installation, runtime sleep setting, actual improvement in radio utilization/retries and listening acceptance remain unverified. No Pi/gateway deployment performed.
+
+## Hardware OTA identity acceptance — 2026-11-20
+
+User supplied Pi terminal output from the pinned 3.5 installer. Package checksum verification passed. Before update, the node reported version 3.4, source f7741b4c9faf160e84c8ca9fb5dde6da7989d59c and MD5 c6c556a7d44df7cf519224e5b396ca63. Uploaded application: 800560 bytes, SHA-256 69726d51105d4c74254224eddaa6365daf1a67278e4a02265932cd27641950b4. OTA accepted and after reboot the updater reported exact expected source 6359c1e0111f4f4ddcc4ecab0f3d41d0825d2fab, running MD5 8d222896ade70fde57dbaf1da7a46069.
+
+**PASS — installed-image identity by user-supplied output.** Runtime wifiPowerSave diagnostic and network/playback performance are not yet verified. Next: curl -s http://192.168.1.175/api/firmware; capture actual power-save status before comparing playback. No additional firmware build or deployment performed.
