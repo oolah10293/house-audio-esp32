@@ -1,6 +1,7 @@
 #pragma once
 #include <Preferences.h>
 #include <Update.h>
+#include <esp_wifi.h>
 #include "BuildIdentity.h"
 
 // The existing per-device LocalNetworkConfig.h is migrated into NVS once.
@@ -28,15 +29,23 @@ static void cdConfigureNetwork() {
     Serial.println("[CD] Set up Wi-Fi at http://192.168.4.1/setup");
   } else {
     WiFi.mode(WIFI_STA);
+    // Mains-powered audio source: minimize Wi-Fi sleep-related latency.
+    // Set before association; Arduino reapplies this policy on STA start.
+    if (!WiFi.setSleep(false)) Serial.println("[CD] Failed to disable Wi-Fi power save");
     WiFi.begin(cdSsid.c_str(), cdPassword.c_str());
   }
 }
 
 static void cdFirmwareInfo() {
+  wifi_ps_type_t ps = WIFI_PS_NONE;
+  const esp_err_t psResult = esp_wifi_get_ps(&ps);
+  const char *powerSave = (psResult != ESP_OK) ? "unknown" :
+                         (ps == WIFI_PS_NONE ? "disabled" : "enabled");
   String info = "{\"version\":\"" + String(CD_RELEASE_VERSION) +
                 "\",\"sourceSha\":\"" + String(CD_SOURCE_SHA) +
                 "\",\"sketchMd5\":\"" + ESP.getSketchMD5() +
                 "\",\"freeSketchSpace\":" + String(ESP.getFreeSketchSpace()) +
+                ",\"wifiPowerSave\":\"" + String(powerSave) + "\""+
                 ",\"bootSession\":\"" + String(bootSession) + "\"}";
   ui.send(200, "application/json", info);
 }
