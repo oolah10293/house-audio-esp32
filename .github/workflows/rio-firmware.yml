@@ -1,0 +1,68 @@
+name: Compile Rio XIAO ESP32-S3 firmware
+
+on:
+  push:
+    branches: [feature/rio-audio-follow]
+    paths:
+      - .github/workflows/rio-firmware.yml
+      - components/house_rio/**
+      - components/house_sub_dsp/**
+      - firmware/rio-subwoofer.yaml
+      - tests/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Native crossover and Snapclient ABI regression tests
+        run: |
+          set -e
+          g++ -std=c++17 -O2 -Wall -Wextra -Werror -fsanitize=address,undefined tests/test_sub_filter.cpp -o /tmp/test_sub_filter
+          /tmp/test_sub_filter
+          g++ -std=c++17 -Os -flto -fno-lto -Wall -Wextra -Werror -ffunction-sections -fdata-sections -Wl,--gc-sections -Wl,--wrap=dsp_processor_worker -Itests/stubs tests/test_hook.cpp tests/mock_upstream.cpp components/house_sub_dsp/house_sub_dsp.cpp -o /tmp/test_hook
+          /tmp/test_hook
+
+      - name: Install ESPHome
+        run: python -m pip install 'esphome==2026.4.0'
+
+      # Test credentials exercise compilation only. NEVER flash this test image:
+      # it does not contain the node's real Wi-Fi settings.
+      - name: Compile Rio firmware (test credentials only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > firmware/secrets.yaml <<'EOF'
+          wifi_ssid: compile-only-network
+          wifi_password: compile-only-password
+          EOF
+          esphome compile firmware/rio-subwoofer.yaml 2>&1 | tee /tmp/rio-build.log
+
+      - name: Verify compiled output
+        shell: bash
+        run: |
+          set -euo pipefail
+          BIN="firmware/.esphome/build/house-audio-rio-sub/.pioenvs/house-audio-rio-sub/firmware.bin"
+          test -s "$BIN"
+          mkdir -p rio-compile-proof
+          cp "$BIN" rio-compile-proof/firmware-TEST-ONLY.bin
+          sha256sum "$BIN" > rio-compile-proof/sha256.txt
+          printf '%s\n' 'COMPILE VALIDATION ONLY - DO NOT FLASH' 'The binary contains dummy Wi-Fi credentials, not the Rio node network settings.' > rio-compile-proof/README.txt
+
+      - name: Upload compile proof (not deployable)
+        uses: actions/upload-artifact@v4
+        with:
+          name: rio-compile-proof
+          path: rio-compile-proof/
+          if-no-files-found: error
+          retention-days: 7

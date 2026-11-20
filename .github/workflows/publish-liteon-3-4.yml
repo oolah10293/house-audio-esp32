@@ -1,0 +1,71 @@
+name: Publish user-authorized LiteOn 3.4 precompiled firmware
+on:
+  push:
+    branches:
+      - fix/liteon-usb-transport-recovery
+    paths:
+      - cd-arduino/ci/authorized-publish-3-4.txt
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish-existing-verified-3-4:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - name: Enforce publication-specific marker-only approval
+        run: |
+          set -euo pipefail
+          marker=cd-arduino/ci/authorized-publish-3-4.txt
+          test "$(git diff-tree --no-commit-id --name-only -r HEAD)" = "$marker"
+          grep -qx 'PUBLISH_EXISTING_3_4 20261113-item3-verified-existing-artifact' "$marker"
+      - name: Download and independently verify exact compiled archive, then publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/liteon
+          gh api --header 'Accept: application/vnd.github+json' \
+            "repos/${GITHUB_REPOSITORY}/actions/artifacts/14094098007/zip" > /tmp/liteon/artifact.zip
+          python3 - <<'PY'
+          import hashlib, zipfile, json, io
+          from pathlib import Path
+          expected_source='f7741b4c9faf160e84c8ca9fb5dde6da7989d59c'
+          expected_outer='11889e4263f1b0cb3f233acc329da2016ff4358efa992f8fbb4a148d9cbba278'
+          expected_inner='ec0c620c1d24138dc534a5f9c01ff44db16cbc18d7d5550ed0729f12da50fcad'
+          expected_bin='bd402601568a3ed0b35e8b4210fed97d0916913393d30d145ec69f5844fdab1c'
+          outer=Path('/tmp/liteon/artifact.zip').read_bytes()
+          assert hashlib.sha256(outer).hexdigest()==expected_outer,'Actions artifact outer hash mismatch'
+          with zipfile.ZipFile(io.BytesIO(outer)) as z:
+              assert z.testzip() is None
+              binary_package=z.read('LiteOn CD player 3.4.zip')
+              outer_manifest=json.loads(z.read('SOURCE_MANIFEST.json'))
+          assert hashlib.sha256(binary_package).hexdigest()==expected_inner,'Release ZIP mismatch'
+          with zipfile.ZipFile(io.BytesIO(binary_package)) as z:
+              assert z.testzip() is None
+              manifest=json.loads(z.read('SOURCE_MANIFEST.json'))
+              assert manifest['source_sha']==outer_manifest['source_sha']==expected_source
+              assert manifest['release_version']=='3.4'
+              assert manifest['hardware_verified'] is False
+              bin_=z.read('HouseAudioCDInput.ino.bin')
+              assert hashlib.sha256(bin_).hexdigest()==manifest['firmware_bin_sha256']==expected_bin
+              assert expected_source in z.read('HouseAudioCDInput/src/BuildIdentity.h').decode()
+              assert '3.4' in z.read('VERSION.txt').decode()
+              assert 'Data-only CD confirmed' in z.read('HouseAudioCDInput/HouseAudioCDInput.ino').decode()
+              for name, digest in manifest['files_sha256'].items():
+                  assert hashlib.sha256(z.read('HouseAudioCDInput/'+name)).hexdigest()==digest, name
+          output=Path('/tmp/liteon/LiteOn.CD.player.3.4.zip')
+          output.write_bytes(binary_package)
+          print('VERIFIED release ZIP bytes:',len(binary_package),'SHA256:',expected_inner)
+          print('VERIFIED exact build SHA:',expected_source,'firmware SHA256:',expected_bin)
+          PY
+          gh release create liteon-cd-3.4 "/tmp/liteon/LiteOn.CD.player.3.4.zip" \
+            --title 'LiteOn CD player 3.4 — data-only disc TOC correction' \
+            --notes 'User-authorized source-only data-disc track-list correction, compiled with pinned Arduino-ESP32 2.0.14 in GitHub Actions run 43546527447 from exact commit f7741b4c9faf160e84c8ca9fb5dde6da7989d59c. ZIP and binary independently SHA256-verified before publication. Firmware is NOT YET hardware tested or installed. Installed 3.3 remains the working baseline until user completes Pi OTA and real-disc acceptance.' \
+            --target f7741b4c9faf160e84c8ca9fb5dde6da7989d59c

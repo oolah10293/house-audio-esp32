@@ -1,0 +1,183 @@
+# LiteOn CD player 3.4 — data-only disc TOC correction
+
+## Authorization and scope
+- User explicitly responded "authorized" immediately after the #3 source-only correction checkpoint, authorizing a versioned firmware build/package for hardware testing. Installation/flashing remains a user action.
+- Last hardware-confirmed running firmware: **3.3**, exact compiled source `8fe9715801497399eafacd8331a9ccf1ee1e15b4`, verified by user-supplied ESP32 status and earlier Pi OTA identity.
+- Version 3.4 changes only CD table-of-contents handling needed to distinguish a *valid data-only disc* from ambiguous or failed TOC reads. It does not modify Pi code, networking, USB host drivers, WAV reader, audio transport, or read-speed/timeouts.
+- Original source change `f75fb92d4f04783268f624ee80426a0ed6c251ad`, follow-up for failed-readiness reset `b1c9e9fcbcc09ed06c2949b5b63238080cff05ab`.
+
+## Intended behavior
+- A first successful, well-formed TOC containing only data tracks leaves the previous audio track list intact while awaiting confirmation.
+- A second consecutive, identical successful data-only TOC clears previously advertised audio tracks, updates disc identity/revision, and reports `Data CD detected; no audio tracks`.
+- A malformed TOC, failed TOC command, or failed readiness test breaks the confirmation chain without destroying a known-good track list. Successful audio TOCs restore the audio list normally.
+- The Pi currently advertises `no_disc` for a CD node with **no playable audio tracks**, including a confirmed data CD; it is a protocol status, not a physical-tray-empty assertion.
+
+## Delivery gate
+- Build only by changing `cd-arduino/ci/authorized-build-request.txt` in a **marker-only** commit after the user authorization, using GitHub Actions with Arduino-ESP32 **2.0.14** and board `esp32:esp32:XIAO_ESP32S3`.
+- Exact full marker-commit SHA is the source identity embedded in the compiled image, package `LiteOn CD player 3.4.zip`, and `SOURCE_MANIFEST.json`.
+- Do not publish or link a guessed file or unverified binary. Record the Actions run, compilation result, SHA-256 ZIP and BIN checks, exact downloadable artifact, and installation command after verification.
+- No OTA or ESP32 flash is performed by the assistant. Until user installs 3.4, the device remains on verified 3.3. Source commit and build success alone do **not** establish the stale-track issue is fixed on hardware.
+
+## Hardware acceptance
+1. Confirm the installed image reports source SHA matching the compiled manifest.
+2. Begin with a playable audio CD; verify correct track enumeration.
+3. Insert a known data-only disc. After two valid reads, old audio tracks should disappear and the status should indicate data-only CD. Expect a brief confirmation interval.
+4. Replace with an audio CD and verify it is enumerated correctly, with changed `discRevision`.
+5. Confirm one failed or malformed TOC does not wipe a working CD track list, and ordinary CD playback/Next/Previous remain functional.
+
+**Current status:** Source-only fix staged. Compile, package, release, Pi OTA and hardware acceptance await independent evidence.
+
+## Authorized 3.4 build and published release (2026-11-13 local / Nov 14 UTC)
+
+**User authorization:** The user's direct "authorized" reply was taken
+as approval to build/package the #3 TOC correction and provide an
+installer, not as permission for the assistant to flash the S3.
+
+- **Compiled exact source SHA:** `f7741b4c9faf160e84c8ca9fb5dde6da7989d59c`.
+  Marker-only trigger was independently confirmed by GitHub commit
+  contents.
+- **Build and full package validation PASSED:**
+  https://github.com/oolah10293/house-audio-esp32/actions/runs/43546527447
+  on Arduino-ESP32 core 2.0.14 for `esp32:esp32:XIAO_ESP32S3`.
+- **Verified Actions artifact:** ID `14094098007`,
+  outer GitHub Actions ZIP SHA-256
+  `11889e4263f1b0cb3f233acc329da2016ff4358efa992f8fbb4a148d9cbba278`.
+  Independently downloaded/opened and verified the outer ZIP,
+  embedded package and `SOURCE_MANIFEST.json`.
+- **Firmware binary:** `HouseAudioCDInput.ino.bin`,
+  800192 bytes, SHA-256
+  `bd402601568a3ed0b35e8b4210fed97d0916913393d30d145ec69f5844fdab1c`.
+- **Published existing verified image (no recompilation):**
+  https://github.com/oolah10293/house-audio-esp32/actions/runs/43546807420
+  completed success. Release
+  https://github.com/oolah10293/house-audio-esp32/releases/tag/liteon-cd-3.4
+  targets the same compiled SHA.
+- **Release ZIP:** `LiteOn.CD.player.3.4.zip`, 547848 bytes,
+  SHA-256 `ec0c620c1d24138dc534a5f9c01ff44db16cbc18d7d5550ed0729f12da50fcad`.
+  The GitHub release asset's name, size and digest were independently
+  confirmed through the GitHub releases API. Archive contents passed
+  ZIP integrity, per-file/source-manifest, binary-hash and image-identity checks.
+- **Updated Pi installer:** `cd-arduino/tools/install-liteon.sh`
+  commit `9d4c456fdd92acddb8db9f79e3d8f65652faee50`; checked to
+  match the published release URL and exact ZIP SHA-256.
+
+### User-operated Pi installation
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/oolah10293/house-audio-esp32/fix/liteon-usb-transport-recovery/cd-arduino/tools/install-liteon.sh | bash
+```
+
+The script downloads the pinned release ZIP, checks SHA-256, extracts
+the OTA binary + manifest and runs the existing Pi->ESP32 OTA uploader,
+which verifies the running `sourceSha` after reboot. The assistant
+has **not** run this Pi command or flashed/deployed firmware; user
+physical acceptance is still pending.
+
+**Runtime status:** Running hardware is last independently/user-
+reported as 3.3, source `8fe9715801497399eafacd8331a9ccf1ee1e15b4`.
+Do not claim 3.4 installed or stale-track bug fixed on hardware
+until user supplies exact OTA identity and disc-swap outcomes.
+
+## User-operated 3.4 Pi OTA success (2026-11-13 local)
+
+**User-supplied Pi terminal output (hardware identity acceptance):**
+```text
+LiteOn CD player 3.4 — Pi OTA installer
+Downloading verified firmware from GitHub...
+Verified firmware archive. Starting OTA from this Pi...
+Currently running: {"bootSession":"d0b63e7f9aa7b55c","freeSketchSpace":1310720,"sketchMd5":"0e0e4da19597308057924aaf8a65d770","sourceSha":"8fe9715801497399eafacd8331a9ccf1ee1e15b4","version":"3.3"}
+Uploading 800192 bytes (SHA256 bd402601568a3ed0b35e8b4210fed97d0916913393d30d145ec69f5844fdab1c) from the Pi...
+Image accepted; waiting for reboot and firmware identity...
+PASS: ESP32 reports expected running commit: f7741b4c9faf160e84c8ca9fb5dde6da7989d59c
+Running image MD5: c6c556a7d44df7cf519224e5b396ca63
+```
+
+**Verified from the user-provided terminal output:** 3.3 was running
+before update; checksum-verified 3.4 firmware archive was downloaded,
+800192-byte binary was uploaded and accepted, and after reboot
+the ESP32 firmware endpoint returned the exact authorized and CI
+compiled source SHA `f7741b4c9faf160e84c8ca9fb5dde6da7989d59c`.
+New reported sketch MD5 is
+`c6c556a7d44df7cf519224e5b396ca63`.
+
+**Status: OTA installation and running-image identity PASS by user
+observation.** The assistant did not run the OTA or directly inspect
+the physical device. **Functionality of data-only TOC confirmation,
+old audio-track clearing, audio-disc restoration, and playback is
+NOT YET hardware verified.** Initial acceptance: with an audio
+CD enumerated, stop playback, swap in a data-only CD, allow idle
+TOC polling and two matching valid reads, check that the ESP32
+status says `Data CD detected; no audio tracks` and the old
+track list disappears. Then restore an audio CD and check its
+new enumeration; don't conflate OTA identity with #3 functionality.
+No further builds, releases, or flashes authorized or performed
+by this checkpoint.
+
+## Hardware data-only CD acceptance — live browser screenshot (2026-11-13)
+
+**User-supplied physical ESP32-S3 browser screenshot**, at
+`http://192.168.1.175/` after the 3.4 OTA, confirms:
+
+- `Status: Data CD detected; no audio tracks`.
+- `SCSI diagnostic: Data-only CD confirmed; old audio tracks cleared`.
+- `CD tracks` section is empty (only the `Rescan CD` control remains).
+- `Firmware: 3.4`; source SHA
+  `f7741b4c9faf160e84c8ca9fb5dde6da7989d59c`;
+  running image MD5 `c6c556a7d44df7cf519224e5b396ca63`.
+- `Disc revision: 2`, consecutive not-ready checks 0,
+  automatic drive-start attempts 1, and Pi registration
+  `OK (HTTP 200)`.
+
+**Acceptance:** Data-only CD detection and removal of stale audio
+tracks **PASS on physical hardware**, by screenshot. This is
+strong evidence that the new two-matching-TOC confirmation path
+completed. It is not proof of all disc-swap edge cases.
+
+**Still pending:** Insert a normal audio CD after the data CD;
+verify audio tracks reappear (and optionally confirm ordinary
+track playback); check repeat poll persistence. The user had
+also reported `i can't stop playback` before this screenshot.
+The response suggested Pi `/stop` and direct MPD `mpc stop`,
+but **no result of those commands was provided**; leave the
+CD Stop control concern unverified instead of silently claiming
+a fix.
+
+**No source changes, compilation, firmware update, or extra
+hardware tests were performed by this documentation checkpoint.**
+
+## Hardware data-only to audio-CD restoration — user acceptance (2026-11-13)
+
+After the 3.4 user-operated Pi OTA, the physical CD swap was tested
+in both directions:
+
+1. **Audio CD -> data CD: PASS by user screenshot.** ESP32 page
+   displayed `Data CD detected; no audio tracks`,
+   `Data-only CD confirmed; old audio tracks cleared`, and no
+   entries under `CD tracks`. Firmware/source/MD5 matched the
+   verified 3.4 build; disc revision was 2; Pi registration HTTP 200.
+2. **Data CD -> audio CD: PASS by user report.** When asked to replace
+   the data disc with an audio disc and check that its tracks returned,
+   the user responded **"yep, it started playing"**. This directly
+   supports successful resumed audio-CD detection and playback after
+   the data CD. The new track count, discRevision and exact start
+   track were not separately supplied or independently read; do not
+   invent them.
+
+**Acceptance:** Cleanup item #3 **CLOSED / user-accepted** for the
+two requested physical disc-swap directions, including removal of
+stale audio tracks and recovery of audio playback on reinsert.
+The prior uncompiled/untested and pending statements above describe
+older stages of the project; this latest checkpoint supersedes those
+status lines, not their factual history.
+
+**Separate residual tests:** Failure injection for a malformed TOC,
+repeated data-CD persistence over long periods, very fast disc swaps
+and other unusual media remain untested. These are not reasons to
+claim a regression or re-open the now-passed ordinary #3 scenario
+without new evidence. The CD Stop UI discoverability concern is a
+separate documented issue; no inference about its function is made
+from disc auto-play success.
+
+No new firmware code changes, builds, releases, packaging or installs
+were performed at this documentation step. Continue to cleanup #4
+only as a new separately scoped investigation.

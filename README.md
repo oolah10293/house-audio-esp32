@@ -1,5 +1,21 @@
 # House Audio ESP32
 
+## Authoritative development baseline — main
+
+Start new work from `main`, not a historical feature branch. See [consolidation and Wi-Fi investigation](docs/MAIN_BASELINE_2026-11-20.md) for exact source identities, hardware acceptance, historical development branches and release gates. Working CD and Rio histories are consolidated here; immutable release and dependency pins remain unchanged. This is a source-only consolidation, not a new firmware build or deployment.
+
+## Lite-On CD delivery: versioned names and no ambiguous packages (user requirement)
+
+**Read this before touching the Lite-On SOHW-1633SX CD sketch or sending any CD files.**
+
+- **Current hardware-confirmed Lite-On CD release:** `LiteOn CD player 3.4` (compiled source `f7741b4c9faf160e84c8ca9fb5dde6da7989d59c`). OTA identity and both audio/data disc-swap directions passed by user report/screenshots; see `cd-arduino/docs/CD_PLAYER_3_4_INSTALL.md`. A few prior timeout messages remain unexplained. Do not claim the remaining 502/RST failure is conclusively gone without fresh gateway logs. Version 2.0 was a historical package, not the current release. The user-facing Pi integration package name remains `HouseMusic_CD_Pi.zip`.
+- Use a clear version number for successive approved releases. Never hand off names with `Recovery`, `Transport`, `USB`, `Test`, `Auto`, or other suffixes that make versions indistinguishable. Internal Git refs and manifests may carry revision information.
+- Archive must contain a clear `VERSION.txt` stating the **exact commit**, whether automatic-playback identity (`bootSession`/`discRevision`) is present, compile status, and *not yet tested on hardware* where applicable. In the response, identify what's installed versus what's in the new package.
+- Before delivery, verify from the **actual ZIP** that its Arduino sketch contains the intended automatic-playback identifiers and **does not** contain the old webpage declaration `It does not automatically change House Music playback.` Never confuse the old working v0.2 sketch with the automatic-playback candidate again.
+- Deliver a directly downloadable attachment, not a GitHub UI procedure. Never claim a package is verified from an unrelated prior CI run.
+- The user is responsible for real hardware flashing/testing. Only build/package/release after explicit authorization. A naming/documentation change itself is **not** authorization.
+- Review `cd-arduino/docs/DELIVERY_ACCEPTANCE_GATE.md` on every CD task.
+
 ## Delivery naming rule (user requirement)
 
 **Do not include `test` in user-facing ZIP filenames, installer/package names, or version labels.** The user explicitly rejected this naming. Use neutral names such as `HouseMusic_CD_Auto_Takeover_Pi.zip` and `HouseMusic_XIAO_CD_Auto.zip`. Record tested/untested status accurately in documentation and release notes instead of embedding it in the delivered filename or version. Deliver downloadable attachments directly in the chat; do not make the user navigate GitHub for files. This instruction applies to future development and handoffs.

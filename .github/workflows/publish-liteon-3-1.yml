@@ -1,0 +1,57 @@
+name: Publish authorized LiteOn 3.1 precompiled firmware
+on:
+  push:
+    branches:
+      - fix/liteon-usb-transport-recovery
+    paths:
+      - cd-arduino/ci/authorized-publish-3-1.txt
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish-pinned-existing-binary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - name: Check publication approval marker
+        shell: bash
+        run: |
+          set -euo pipefail
+          marker=cd-arduino/ci/authorized-publish-3-1.txt
+          test "$(git diff-tree --no-commit-id --name-only -r HEAD)" = "$marker"
+          grep -qx 'PUBLISH_EXISTING_3_1 20261113-one-command-pi-installer' "$marker"
+      - name: Download, verify, publish precompiled and CI-verified 3.1 archive
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/liteon
+          gh api --header 'Accept: application/vnd.github+json' \
+            "repos/${GITHUB_REPOSITORY}/actions/artifacts/14063422119/zip" > /tmp/liteon/artifact.zip
+          python3 - <<'PY'
+          import hashlib, zipfile
+          from pathlib import Path
+          outer=Path('/tmp/liteon/artifact.zip')
+          with zipfile.ZipFile(outer) as z:
+              data=z.read('LiteOn CD player 3.1.zip')
+          expected='bcae13b3ce1a37cfa5c5bc3beadab7e555f4649ea6ecdbe081329f6cef7597ed'
+          actual=hashlib.sha256(data).hexdigest()
+          assert actual == expected,(actual,expected)
+          with zipfile.ZipFile(__import__('io').BytesIO(data)) as z:
+              manifest=__import__('json').loads(z.read('SOURCE_MANIFEST.json'))
+              assert manifest['source_sha']=='01452e660f3e8fec5d30ba84823cc0cfb5d2d58e'
+              assert hashlib.sha256(z.read('HouseAudioCDInput.ino.bin')).hexdigest()==manifest['firmware_bin_sha256']
+          Path('/tmp/liteon/LiteOn CD player 3.1.zip').write_bytes(data)
+          print('Verified existing compiled release archive',actual)
+          PY
+          gh release create liteon-cd-3.1 "/tmp/liteon/LiteOn CD player 3.1.zip" \
+            --title 'LiteOn CD player 3.1' \
+            --notes 'Existing GitHub Actions-compiled OTA image from commit 01452e660f3e8fec5d30ba84823cc0cfb5d2d58e (run 43476480059). Compilation and archive checks passed; OTA installation on hardware not yet verified. No new firmware compilation in this publication workflow.' \
+            --target 01452e660f3e8fec5d30ba84823cc0cfb5d2d58e
