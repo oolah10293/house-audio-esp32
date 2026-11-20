@@ -32,3 +32,9 @@ User supplied Pi terminal output from the pinned 3.5 installer. Package checksum
 ## Runtime Wi-Fi power-save acceptance — 2026-11-20
 
 User supplied `curl -s http://192.168.1.175/api/firmware` output: version 3.5, sourceSha 6359c1e0111f4f4ddcc4ecab0f3d41d0825d2fab, sketchMd5 8d222896ade70fde57dbaf1da7a46069, freeSketchSpace 1310720, wifiPowerSave disabled, bootSession 242327f09cf59451. **PASS: actual driver power-save state reports disabled.** Playback performance, airtime, retries and functional CD regression acceptance remain pending. Compare CD playback with six listening nodes and unchanged AP assignments. Documentation only; no new build or deployment.
+
+## Six-node CD playback acceptance — 2026-11-20
+
+After installing Lite-On 3.5 and verifying that firmware reports `wifiPowerSave: disabled`, the user reported: **"i've listened to most of a cd and no dropouts with 6 speakers and the cd player s3 connectted"**. This is a **PASS by user observation** for nearly one complete audio CD with six listening/rendering nodes plus the Lite-On ESP32-S3 streaming source simultaneously active; no audible dropouts were reported during that session.
+
+This does **not** prove that the Wi-Fi power-save change caused the improvement, does not constitute a controlled A/B test, and does not establish zero retries, lower channel utilization, or indefinite reliability. No new AP/channel configuration, additional diagnostics, or device source hashes were supplied for the test. Leave the current setup unchanged and monitor ordinary listening. No firmware source, build, or deployment change.
