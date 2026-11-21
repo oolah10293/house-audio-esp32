@@ -40,9 +40,9 @@ Test-Path "$backup\secrets.yaml"
 
 The exact resulting timestamped path must be copied from PowerShell output and **recorded after completion**, not guessed from the current date. Confirm the destination exists and contains the expected YAML files and `secrets.yaml`; a successful copy should not overwrite `C:\esphome\configs`. `secrets.yaml` must remain local and must **never** be committed to GitHub.
 
-**Backup status as of this checkpoint: NOT YET CONFIRMED.** The command was supplied in the conversation, but the user has not reported running it or supplied the actual destination. Do not claim a rollback copy exists until confirmed. If a full rollback is later needed, do not automatically overwrite the live config folder; identify the precise backup and restore plan first.
+**Backup status (2026-11-20): USER-CONFIRMED COPY COMPLETED.** The user pasted the PowerShell transcript showing the `Copy-Item` command returning without an error, `Write-Host` reporting the exact destination **`C:\esphome\configs-backup-20261120-202826`**, and `Test-Path "$backup\secrets.yaml"` returning **`True`**. This confirms command completion and the presence of `secrets.yaml` as reported by the Windows machine; the entire directory tree and any firmware/rollback binaries were **not independently audited**. This backup was made by copying the live configuration directory and is not necessarily a backup of the dashboard launcher or toolchain. The actual backup files, including `secrets.yaml`, remain local; none were uploaded to GitHub. If a full rollback is later needed, do not automatically overwrite the live config folder; identify the precise backup and restore plan first.
 
-**Next intended checkpoint:** After the owner verifies the backup, record its real folder name here; then compare the locally running Basement YAML with the GitHub version before making a pilot firmware change. Preserve the working Windows launcher and installed ESPHome toolchain.
+**Next intended checkpoint:** Compare the locally running Basement stereo YAML with the finalized GitHub version before any pilot firmware update. Maintain this timestamped backup and preserve the working Windows launcher and installed ESPHome toolchain.
 
 ## User-reported local setup/history (not independently inspected)
 
@@ -83,7 +83,7 @@ These upstream documentation references **do not mean the local installation was
 
 ## Unresolved / must not guess
 
-- Exact contents/path of the dashboard launcher; full `uv` installation details beyond the observed Python executable; path and verification of any completed configuration backup. ESPHome version `2026.4.0` and config path `C:\esphome\configs` are now user-confirmed/visible in screenshots.
+- Exact contents/path of the dashboard launcher and full `uv` installation details beyond the observed Python executable. The Windows ESPHome version (`2026.4.0`), live config path (`C:\esphome\configs`) and timestamped backup path (`C:\esphome\configs-backup-20261120-202826`) are user-confirmed; only backup command completion and existence of `secrets.yaml` were directly demonstrated, not a comprehensive contents or restore test.
 - Which GitHub branches or PRs every current node actually references.
 - Whether the forked Snapclient logging fix is required by the intended newer release.
 - Whether all active YAML configurations are represented in GitHub.
