@@ -78,6 +78,20 @@ All four OTA uploads completed successfully.
 
 **Next checkpoint:** ask the owner to play music through the four additional nodes and confirm reconnect/stream reception, synchronization, and Snapcast volume behavior. Do not classify an upload PASS as a separate hardware acceptance PASS. Keep the compiled artifacts and original live configuration backup until field acceptance is complete.
 
+## Final five-node functional acceptance — owner-confirmed 2026-11-20
+
+**Milestone: PASS for all five.** The owner reported "synchronization and volume control confirmed on the remaining 4" after a four-device OTA upload batch returned PASS. Together with the earlier Basement stereo field report ("it flashed and started playing again" and "synchronized and snapcast volume control is working"), this establishes the following **owner-reported** five-node acceptance results, not independently measured telemetry:
+
+| Device | IP | Config/compile | OTA | Audio/sync/volume |
+| --- | --- | --- | --- | --- |
+| Motorola Radio (C6-3) | `192.168.1.161` | PASS | PASS | PASS by owner report |
+| Emerson Radio (C6-4) | `192.168.1.179` | PASS | PASS | PASS by owner report |
+| Basement stereo (S3-1) | `192.168.1.117` | PASS | PASS | PASS by owner report |
+| Music Room stereo (S3-2) | `192.168.1.100` | PASS | PASS | PASS by owner report |
+| Garage stereo (S3-5) | `192.168.1.124` | PASS | PASS | PASS by owner report |
+
+This **closes five-node initial functional rollout acceptance**. The four latest reports confirm synchronization and Snapcast volume behavior; audible sound is implied by the reported synchronization, but no individual timing measurements or device logs were supplied. **Not yet established:** long-term dropout-free stability, performance under heavier network load, and successful remote WARN log capture. These remain separate reliability/diagnostics follow-ups. Keep the existing backup, staged firmware binaries and local configuration until there is a clear reason to retire them. Do not repeat compilation or OTA for this milestone.
+
 ## Current Windows deployment observations — 2026-11-20
 
 The user provided screenshots of the running Windows ESPHome dashboard and its console, and separately ran the read-only version command.
