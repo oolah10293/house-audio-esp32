@@ -240,3 +240,14 @@ The owner supplied a device listing screenshot identifying the intended local de
 | `house-audio-rio-sub` | `192.168.1.131` |
 
 The screenshot establishes the address-to-device label mapping at the time shown. It is not a live connectivity test or confirmation of a successful update. Compiled artifacts and configuration validation are recorded in the preceding checkpoints; runtime/OTA outcomes remain to be reported separately.
+
+## Rio and Bose OTA upload — owner-reported PASS (2026-11-20)
+
+The owner executed the supplied PowerShell loop that calls `esphome upload <staged YAML> --device <target IPv4> --file <existing firmware.bin>` for Rio followed by Bose, and reported **"both passed."** This is owner-reported success of the OTA command for both target devices, not independent access to command logs or post-update audio telemetry.
+
+| Device | Target IP | OTA command status |
+|---|---|---|
+| Rio Subwoofer | `192.168.1.131` | **PASS (owner report)** |
+| Bose Sub | `192.168.1.110` | **PASS (owner report)** |
+
+**Functional acceptance still pending:** Audible bass, synchronization with the house speakers, Rio follow/mute behavior when assigned speakers leave and return, Bose amplifier acknowledgement and standby/awake behavior, and restored tuning controls. No firmware-source edits are implied by this checkpoint.
