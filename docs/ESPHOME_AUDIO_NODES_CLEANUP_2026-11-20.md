@@ -31,3 +31,15 @@ Five YAML files were copied to `firmware/nodes/`. File contents are **byte-for-b
 The five uploaded YAMLs were read directly; filenames were selected by existing `esphome.name` and ESP32 board type, **not** by the misleading filenames. All five candidate copies matched the original files byte-for-byte, and YAML structures were compared unchanged. This is **source-only; no ESPHome config check, compile, package, OTA, flash, device reboot, or audio regression test was performed**.
 
 Next, perform a read-only comparison of Snapclient implementations and document which settings are deliberate hardware differences and which should be harmonized. Do not alter known-working dependency revisions or introduce shared YAML package dependencies as part of cosmetic standardization. Any firmware build/packaging/installation requires explicit authorization.
+
+## Pass 2 — Wi-Fi fast connect on three S3 renderers — 2026-11-20
+
+User explicitly requested applying the Motorola startup-speed optimizations to other nodes that lack them. Compared the five user-uploaded YAML configurations. Motorola C6-3 and Emerson C6-4 already had both `fast_connect: true` and `wifi.manual_ip`; three S3 stereo renderers had neither. The S3 source files now contain exactly one new line each, `fast_connect: true` immediately after `wifi.password`:
+
+- `house-audio-s3-1.yaml` — Basement stereo
+- `house-audio-s3-2.yaml` — Music room stereo
+- `house-audio-s3-5.yaml` — Garage stereo
+
+**Not yet applied: manual/static IP.** Actual stable, nonconflicting S3 addresses and DHCP reservations are not verified. In particular, Music Room's `use_address: 192.168.1.100` specifies the device address to target for management; it does **not** by itself configure static IP. Do not guess or assign addresses without checking the current network. `fast_connect` avoids initial Wi-Fi scanning, but ESPHome warns that it may attach to the first AP it sees instead of the strongest; the home has multiple APs. Measure real power-on-to-audio join time and AP association before attributing improvements.
+
+No other YAML values (including device names, MACs, pins, `use_address`, Snapclient source, logging, power save, OTA, API) changed. **Source edits and diff inspection only**; ESPHome config validation, firmware compilation, installation, and field performance remain untested. Never build/package/flash without explicit authorization.
