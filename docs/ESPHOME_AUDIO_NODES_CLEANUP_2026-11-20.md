@@ -55,3 +55,15 @@ User requested resolution of a known Snapclient source-incompatibility before fu
 - Motorola and Emerson C6 renderers remain pinned to their existing independent known-working component at `oolah10293/house-audio-esp32@19e4679b1b8d96c5416f94836d54300e6f0a25d8`. No other settings modified, including recently added `fast_connect`.
 
 **Verified:** Git ancestry, patch scope (two logging files only), dependency references, and repo source-only diffs. **Not verified:** compatibility/build with the owner's currently installed ESPHome executable, ability to install compiled firmware, or behavior on the physical S3 hardware. No ESPHome config validation, firmware compilation, firmware package, installation or flash performed. Existing installed firmware remains untouched. Pinning an external-components commit does not guarantee it will compile with a given toolchain; do not represent this as field-tested before compiling under separately authorized build work.
+
+## Pass 4 — standardized WARN logging over Wi-Fi — 2026-11-20
+
+After explicit user instruction to finish logging standardization, updated the five GitHub YAML source files:
+
+- All five: `logger.level: WARN` (replaces `NONE` on Motorola/Emerson, `DEBUG` on Basement/Music Room/Garage stereo).
+- Basement stereo: add `api:\n  reboot_timeout: 0s` matching the existing four audio renderers. The ESPHome native API permits a connected log viewer to retrieve WARN/ERROR logs over Wi-Fi.
+- Basement stereo: change `esp32.framework.log_level: INFO` to `ERROR`, matching ESPHome's documented default ESP-IDF framework logging level used by the other four nodes.
+- All three S3 stereos: preserve `logger.hardware_uart: USB_SERIAL_JTAG`, leaving USB diagnostics available as before. C6 default logging transport settings remain unchanged.
+- No changes to Wi-Fi addresses/fast_connect, OTA, Snapclient component sources, chip/PSRAM/I2S settings, names or IDs.
+
+**Verification performed:** source-text checks for one WARN logger on each file, all five native API stanzas, GitHub commit diff review. **Not performed:** local ESPHome configuration parsing, compilation, installed firmware or runtime performance testing. Native API network log capture and logger semantics verified against the published ESPHome logger/API documentation; actual connected logging performance was not hardware-tested.

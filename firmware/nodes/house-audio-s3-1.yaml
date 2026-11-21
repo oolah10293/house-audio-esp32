@@ -11,14 +11,14 @@ esp32:
   framework:
     type: esp-idf
     version: recommended
-    log_level: INFO
+    log_level: ERROR
 
 psram:
   mode: octal
   speed: 80MHz
 
 logger:
-  level: DEBUG
+  level: WARN
   hardware_uart: USB_SERIAL_JTAG
 
 wifi:
@@ -30,6 +30,9 @@ wifi:
 
 ota:
   - platform: esphome
+
+api:
+  reboot_timeout: 0s
 
 network:
   enable_ipv6: false

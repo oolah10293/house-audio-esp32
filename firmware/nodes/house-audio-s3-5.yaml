@@ -17,7 +17,7 @@ psram:
   speed: 80MHz
 
 logger:
-  level: DEBUG
+  level: WARN
   hardware_uart: USB_SERIAL_JTAG
 
 wifi:
