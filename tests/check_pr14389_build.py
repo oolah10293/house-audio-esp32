@@ -33,8 +33,8 @@ assert player["internal"] is True, "dead HA media-player controls must stay hidd
 assert config["wifi"]["post_connect_roaming"] is False
 assert "fast_connect" not in config["wifi"]
 assert config["wifi"]["power_save_mode"] == "none"
-assert config["logger"] == {"level": "DEBUG", "hardware_uart": "USB_SERIAL_JTAG"}
-assert config["esp32"]["framework"]["log_level"] == "INFO"
+assert config["logger"] == {"level": "WARN", "baud_rate": 0}
+assert "log_level" not in config["esp32"]["framework"]
 assert config["api"]["reboot_timeout"] == "0s"
 assert config["external_components"][0]["source"] == (
     "github://luar123/esphome@4d3280bd35fdd970e628a22197f19ab0fded1a39"
@@ -65,10 +65,10 @@ assert numbers["bose_attenuation"]["max_value"] == 40
 assert numbers["bose_attenuation"]["initial_value"] == 12
 assert numbers["sub_lowpass"]["min_value"] == 60
 assert numbers["sub_lowpass"]["max_value"] == 160
-assert numbers["sub_lowpass"]["initial_value"] == 90
+assert numbers["sub_lowpass"]["initial_value"] == 80
 assert numbers["sub_lowcut"]["min_value"] == 0
-assert numbers["sub_lowcut"]["max_value"] == 50
-assert numbers["sub_lowcut"]["step"] == 10
+assert numbers["sub_lowcut"]["max_value"] == 80
+assert numbers["sub_lowcut"]["step"] == 5
 assert numbers["sub_lowcut"]["initial_value"] == 0
 assert all(entry["restore_value"] is True for entry in numbers.values())
 assert all(entry["entity_category"] == "config" for entry in numbers.values())
