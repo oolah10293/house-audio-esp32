@@ -271,3 +271,9 @@ The owner confirmed **"it does"** in response to the question: **"When the last 
 - **Bose:** Automatic standby after the configured 30-second delay under the same condition.
 
 The prior owner report separately confirmed playback and synchronization of both subwoofers. The present response does not separately verify Bose wake acknowledgment or Rio unmute after return, forced Bose modes, persistence of tuning settings, or long-term reliability; those remain untested or unreported. No firmware source change was made for this record.
+
+## Rio unmute and Bose automatic wake on playback return — owner-confirmed PASS (2026-11-20)
+
+After confirming that Rio automatically mutes and Bose enters standby 30 seconds after the last assigned main speaker stops, the owner answered **"they do"** to **"When you start playing music again, does Rio unmute and Bose wake up automatically?"**.
+
+**Owner-confirmed field PASS:** Rio resumes audible output automatically on playback return, and Bose automatically wakes on playback return. This completes the reported automatic follow/mute/unmute cycle for Rio and the reported delayed standby/automatic wake cycle for Bose. This is the owner's functional observation, not an independently collected hardware trace or serial acknowledgment capture. Manual Bose Force standby/Force awake modes and persistence of adjustable tuning settings have not been specifically tested in this exchange.
