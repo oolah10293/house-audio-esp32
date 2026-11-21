@@ -29,6 +29,21 @@ The owner explicitly corrected the assistant **three times** for repeatedly appe
 
 Evidence level: this verifies the existence and reported sizes **from the owner's local command output**, not through direct access to the owner's Windows filesystem. Contents, hashes, boot and OTA behavior remain unverified. **Next checkpoint:** review the difference between the owner's live `C:\esphome\configs\house-audio-s3-1.yaml` and the staged `C:\esphome\staging\house-audio-s3-1.yaml`, then plan the Basement stereo's OTA using its existing binary; do not recompile all five. Do not repeat compilation unless evidence shows a build artifact is missing or unusable.
 
+## Basement stereo live-versus-staged comparison — owner report, 2026-11-20
+
+The owner ran `fc.exe /N "C:\esphome\configs\house-audio-s3-1.yaml" "C:\esphome\staging\house-audio-s3-1.yaml"` and posted its difference hunks. Compared against the current `firmware/nodes/house-audio-s3-1.yaml` in GitHub `main`, all differences are expected and intentional:
+
+- Remove explicit framework `log_level: INFO` (rely on documented default).
+- Change logger `DEBUG` / `hardware_uart: USB_SERIAL_JTAG` to `WARN` / `baud_rate: 0`.
+- Add `wifi.fast_connect: true`.
+- Add static IP `192.168.1.117`, gateway `192.168.1.1`, subnet `255.255.255.0`.
+- Add `api.reboot_timeout: 0s`.
+- Replace moving `github://luar123/esphome@snapclient2` with pinned logging-compatibility fork `github://oolah10293/esphome@7d84414a54235a215fd2420bd6a8ac00156d488e`.
+
+**Evidence:** Owner-pasted `fc.exe` output includes only these six groups of changes. The staged file passed ESPHome config and compile in the owner's prior checks. A built Basement `firmware.bin` was found at `C:\esphome\staging\.esphome\build\house-audio-s3-1\.pioenvs\house-audio-s3-1\firmware.bin` (879312 bytes, owner-reported). Hardware boot, audio performance and OTA installation remain untested. The existing local configurations were not overwritten by this comparison.
+
+**Next field action:** Controlled Basement stereo OTA to `192.168.1.117` with the **precompiled** firmware and staged YAML, then check Snapcast reconnect, audible output, synchronization, volume control and Wi-Fi stability before moving on to the other four. The CLI documented form `esphome upload <staged.yaml> --device 192.168.1.117 --file <existing firmware.bin>` uploads the prebuilt image without invoking compilation. An OTA upload is a distinct owner-executed action; do not state it has happened until the owner reports the result.
+
 ## Current Windows deployment observations — 2026-11-20
 
 The user provided screenshots of the running Windows ESPHome dashboard and its console, and separately ran the read-only version command.
