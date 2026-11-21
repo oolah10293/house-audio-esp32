@@ -1,6 +1,6 @@
 # Bose automatic standby v0.1.0 — component and firmware behavior
 
-**Current canonical configuration on `main`: `firmware/bose-subwoofer.yaml`.** This document originated on `bose-sub-auto-standby`. The Bose YAML on `main` has been restored to the **exact original content** from that branch, without the unauthorized Wi-Fi and logging edits. The older `firmware/bose-subwoofer-prototype.yaml` remains archival. This repository reorganization has **not** compiled or installed firmware and does not establish which Bose firmware revision is currently running on hardware.
+**Current canonical configuration on `main`: `firmware/bose-subwoofer.yaml`.** This document originated on `bose-sub-auto-standby`. The Bose YAML on `main` initially came from the branch intact. Subsequent owner-directed source edits align logging and DSP filter defaults/ranges with the Rio sub while preserving the Bose control component, Snapclient pin, and all Wi-Fi settings. The older `firmware/bose-subwoofer-prototype.yaml` remains archival. This repository reorganization has **not** compiled or installed firmware and does not establish which Bose firmware revision is currently running on hardware.
 
 This is the Bose firmware step after house-audio-server v0.12.0. It does not
 change regular S3 nodes, the Pi queue, or the Android app. Physical acceptance
@@ -22,7 +22,7 @@ It does not guess based on a friendly name or IP. The default Pi origin is
 Open **http://192.168.1.12:8787/subwoofers** for Pi demand and reported state.
 Home Assistant now has **Bose Mode** (Auto / Force standby / Force awake) and
 **Bose Amplifier Status**. The old **Bose Standby (Test)** entity is replaced.
-The five tuning controls retain their IDs, ranges, defaults and restore behavior.
+The tuning controls retain their IDs and restore behavior. Their DSP filter settings now match the Rio subwoofer: 80 Hz low-pass default and a 0–80 Hz low-cut slider in 5 Hz steps; the Bose hardware attenuation control remains independent. Existing saved Home Assistant settings may override defaults during boot.
 Mode also restores; a new installation defaults to Auto. Forced mode persists
 until Auto is selected again, including over a reboot.
 
