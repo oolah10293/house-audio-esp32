@@ -11,7 +11,6 @@ esp32:
   framework:
     type: esp-idf
     version: recommended
-    log_level: ERROR
 
 psram:
   mode: octal

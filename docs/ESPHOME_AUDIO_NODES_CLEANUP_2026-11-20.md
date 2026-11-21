@@ -92,3 +92,13 @@ Gateway and subnet match the existing Motorola/Emerson C6 node configurations in
 **DHCP conflict precaution:** The supplied screenshot demonstrates IP/hostname/MAC associations but does **not by itself prove** they are fixed DHCP reservations or excluded from the DHCP allocation pool. Before using static addresses on the network, check Pi-hole DHCP reservations for these MAC/IP pairs (or remove those IPs from the dynamic DHCP pool) so another device cannot receive them. Do not mistake an observed active lease for a confirmed reservation.
 
 **Verified:** source changes to three YAMLs and GitHub diff. **Not verified:** Pi-hole reservation state, current DHCP allocation scope, ESPHome configuration validation, or physical network behavior. This is a source-only checkpoint.
+
+## Pass 6 — remove redundant S3 configuration differences — 2026-11-20
+
+At the owner's explicit request, made these **three exact source cleanups**:
+
+1. Basement stereo: removed only `esp32.framework.log_level: ERROR`; the YAML now uses the same unspecified framework log level as the other S3 configurations (the previously verified ESPHome default is ERROR). Its `logger.level: WARN` is unchanged.
+2. Music Room stereo: removed only `wifi.use_address: 192.168.1.100`; its actual `wifi.manual_ip.static_ip: 192.168.1.100` remains, with existing network parameters intact.
+3. Garage stereo: rewrote `external_components` to the identical short-form `github://oolah10293/esphome@7d84414a54235a215fd2420bd6a8ac00156d488e` and `refresh: 0s` used by Basement and Music Room. The **exact immutable Snapclient source commit** is unchanged; only the declaration syntax and refresh policy changed.
+
+**Source verification:** inspected original GitHub YAML at prior `main`, applied only those three replacements, and reviewed the resulting GitHub patch. No other component setting or node identity changed. Build/runtime compatibility has not been separately verified.
