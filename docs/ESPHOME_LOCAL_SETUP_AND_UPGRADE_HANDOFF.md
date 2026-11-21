@@ -52,6 +52,12 @@ The owner reported: **"it flashed and started playing again"** after executing t
 
 The other four node binaries exist in the owner's staging directory per their path/size checks, but none has been reported installed in this rollout. The sensible next action is a short listening/synchronization/volume check on Basement, then sequential OTA uploads of the four **already compiled** binaries (`house-audio-c6-3` at `.161`, `house-audio-c6-4` at `.179`, `house-audio-s3-2` at `.100`, `house-audio-s3-5` at `.124`), capturing each outcome. Do not mistake a suggested batch command for a deployment that has actually happened. Preserve working configs and the existing backup.
 
+## Basement stereo pilot acceptance — owner-reported, 2026-11-20
+
+After confirming that the Basement stereo firmware OTA completed and audible playback resumed, the owner additionally reported: **"synchronized and snapcast volume control is working"**. Mark this pilot's three field checks **PASS by owner report**: audible playback, synchronization against another renderer, and Snapcast volume control. This does not establish long-term dropout-free operation or acceptance of the separate ESP32-C6 fixed-point DSP path.
+
+Next rollout group: four remaining precompiled firmware images — Motorola radio `house-audio-c6-3` at `192.168.1.161`, Emerson radio `house-audio-c6-4` at `192.168.1.179`, Music Room stereo `house-audio-s3-2` at `192.168.1.100`, Garage stereo `house-audio-s3-5` at `192.168.1.124`. Preserve the current `C:\esphome\configs` directory and backup. A sequential PowerShell batch should use `uv\tools\esphome\Scripts\python.exe -m esphome upload` with the corresponding **already compiled** `firmware.bin` per device, capture separate logs, and stop at first upload failure. User confirmation of each device returning to audio remains pending.
+
 ## Current Windows deployment observations — 2026-11-20
 
 The user provided screenshots of the running Windows ESPHome dashboard and its console, and separately ran the read-only version command.
