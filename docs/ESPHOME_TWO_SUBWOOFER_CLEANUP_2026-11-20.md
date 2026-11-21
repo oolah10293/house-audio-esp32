@@ -24,6 +24,22 @@ Bose only: remove explicit `esp32.framework.log_level: INFO`, matching the strea
 - Bose: `house_bose` acknowledged standby/wake, GPIO43/44 open-drain/UART pins, hardware attenuation and Pi control API, startup restore and crossover controls; snapclient pin `4d3280bd35fdd970e628a22197f19ab0fded1a39` and Bose control pin `92608cf75bf470e91de00fb08437a606f7adeb96`.
 - Neither source assigns a static IP as of this checkpoint. **Do not guess a DHCP reservation.** Historically observed device addresses from user reports were Bose `192.168.1.110` and Rio `192.168.1.129`, but the current leases and Pi-hole reservations were not independently established. Confirm MAC/address reservations before adding `wifi.manual_ip`. The House server `192.168.1.12` is **not** a renderer IP.
 
+## Bose repository reconciliation — 2026-11-20
+
+GitHub repository inventory confirmed that Bose is a project within `oolah10293/house-audio-esp32`, not a separate Bose-named GitHub repository among the user's accessible repos. The historical feature branches remain available.
+
+**Main is now the canonical Bose source and test/documentation home:**
+
+- `firmware/bose-subwoofer.yaml` is the newer v0.1.0 auto-standby configuration from the user-provided live-source family with the safe Wi-Fi/logging-only changes described above.
+- `firmware/bose-subwoofer-prototype.yaml` remains for historical comparison but has been labeled **not current**. It still contains the earlier manual standby test, unlike the newer standby controller; do not compile or install it as the current Bose image.
+- `components/house_bose/bose_controller.h`, `pi_contract.h`, `__init__.py`, and `house_bose.cpp` had **identical Git blob SHAs** between `main` and `bose-sub-auto-standby` at review time, so no component implementation changes were needed.
+- Restored `docs/BOSE_AUTO_STANDBY.md`, `tests/test_bose_controller.cpp`, and `tests/test_pi_contract.cpp` to `main` from the feature branch. The docs now identify the canonical YAML; tests have been copied exactly as source and **have not been run**.
+- Changed `tests/check_pr14389_build.py` to validate `firmware/bose-subwoofer.yaml` rather than the historical prototype, assert the exact pinned Bose dependency, and check normalized logging/Wi-Fi settings.
+- Changed `.github/workflows/bose-sub-dsp.yml` on `main` to **manual dispatch only**, using the canonical YAML and native Bose tests. There is no `push` build trigger on `main`; the old feature-branch workflow files retain their historical behavior.
+- The `bose-sub-auto-standby` branch is retained as rollback/history; it was not force-merged, rebased or deleted. No Bose firmware build, package, release or OTA flash was initiated in this reconciliation.
+
+**Verification level:** GitHub files, branch source, component blob identities, canonical references and CI dispatch trigger were inspected after editing. No GitHub Actions run, ESPHome config/compile, native C++ test execution or hardware behavior is asserted. The Bose firmware **currently installed on hardware** has not been independently identified and may differ from the refreshed `main` configuration.
+
 ## Verification and next step
 
 - **Verified:** The current source revisions and code differences were inspected, and the modified YAML structures parsed with a generic YAML parser. These checks do **not** constitute ESPHome `config` or `compile`.
