@@ -43,15 +43,14 @@ esp32:
   framework:
     type: esp-idf
     version: recommended
-    log_level: INFO
 
 psram:
   mode: octal
   speed: 80MHz
 
 logger:
-  level: DEBUG
-  hardware_uart: USB_SERIAL_JTAG
+  level: WARN
+  baud_rate: 0
 
 wifi:
   ssid: !secret wifi_ssid
@@ -85,7 +84,7 @@ external_components:
 # Home Assistant values replace them during boot.
 house_sub_dsp:
   id: sub_dsp
-  lowpass_hz: 90.0
+  lowpass_hz: 80.0
   lowcut_hz: 0.0
   phase_inverted: false
   crossover_bypass: false
@@ -192,7 +191,7 @@ number:
     min_value: 60
     max_value: 160
     step: 1
-    initial_value: 90
+    initial_value: 80
     restore_value: true
     optimistic: true
     mode: slider
@@ -201,7 +200,7 @@ number:
           id: sub_apply_lowpass
           cutoff_hz: !lambda 'return x;'
 
-  # Values are 0, 10, 20, 30, 40 or 50 Hz. Zero disables the high-pass.
+  # Values are 0 to 80 Hz in 5 Hz steps. Zero disables the high-pass.
   - platform: template
     id: sub_lowcut
     name: Sub Low-Cut (0 = Off)
@@ -209,8 +208,8 @@ number:
     entity_category: config
     unit_of_measurement: Hz
     min_value: 0
-    max_value: 50
-    step: 10
+    max_value: 80
+    step: 5
     initial_value: 0
     restore_value: true
     optimistic: true
