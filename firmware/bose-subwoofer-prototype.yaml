@@ -1,3 +1,8 @@
+# HISTORICAL BOSE PROTOTYPE — NOT THE CURRENT DEPLOYMENT SOURCE.
+# Canonical Bose auto-standby configuration on main: firmware/bose-subwoofer.yaml
+# Current hardware firmware is not independently identified by this file.
+# Preserve only for historical reference; do not use it for new installs.
+#
 # Bose Sub — Snapclient PR #14389 + live Home Assistant tuning controls.
 #
 # Existing wiring, unchanged:
