@@ -1,6 +1,6 @@
 # Bose automatic standby v0.1.0 — component and firmware behavior
 
-**Current canonical configuration on `main`: `firmware/bose-subwoofer.yaml`.** This document originated on `bose-sub-auto-standby`, and the versioned behavior is preserved on `main` with only Wi-Fi/logging cleanup. The older `firmware/bose-subwoofer-prototype.yaml` is archival. The updated main configuration has **not yet been compiled or installed**, and this documentation does not imply hardware acceptance.
+**Current canonical configuration on `main`: `firmware/bose-subwoofer.yaml`.** This document originated on `bose-sub-auto-standby`. The Bose YAML on `main` has been restored to the **exact original content** from that branch, without the unauthorized Wi-Fi and logging edits. The older `firmware/bose-subwoofer-prototype.yaml` remains archival. This repository reorganization has **not** compiled or installed firmware and does not establish which Bose firmware revision is currently running on hardware.
 
 This is the Bose firmware step after house-audio-server v0.12.0. It does not
 change regular S3 nodes, the Pi queue, or the Android app. Physical acceptance

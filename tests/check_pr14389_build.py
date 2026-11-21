@@ -31,10 +31,10 @@ player = config["media_player"][0]
 assert player["platform"] == "snapclient"
 assert player["internal"] is True, "dead HA media-player controls must stay hidden"
 assert config["wifi"]["post_connect_roaming"] is False
-assert config["wifi"]["fast_connect"] is True
+assert "fast_connect" not in config["wifi"]
 assert config["wifi"]["power_save_mode"] == "none"
-assert config["logger"] == {"level": "WARN", "baud_rate": 0}
-assert "log_level" not in config["esp32"]["framework"]
+assert config["logger"] == {"level": "DEBUG", "hardware_uart": "USB_SERIAL_JTAG"}
+assert config["esp32"]["framework"]["log_level"] == "INFO"
 assert config["api"]["reboot_timeout"] == "0s"
 assert config["external_components"][0]["source"] == (
     "github://luar123/esphome@4d3280bd35fdd970e628a22197f19ab0fded1a39"

@@ -39,13 +39,12 @@ psram:
   speed: 80MHz
 
 logger:
-  level: WARN
-  baud_rate: 0
+  level: DEBUG
+  hardware_uart: USB_SERIAL_JTAG
 
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
-  fast_connect: true
   post_connect_roaming: false
   power_save_mode: none
 
