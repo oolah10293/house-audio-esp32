@@ -102,3 +102,19 @@ At the owner's explicit request, made these **three exact source cleanups**:
 3. Garage stereo: rewrote `external_components` to the identical short-form `github://oolah10293/esphome@7d84414a54235a215fd2420bd6a8ac00156d488e` and `refresh: 0s` used by Basement and Music Room. The **exact immutable Snapclient source commit** is unchanged; only the declaration syntax and refresh policy changed.
 
 **Source verification:** inspected original GitHub YAML at prior `main`, applied only those three replacements, and reviewed the resulting GitHub patch. No other component setting or node identity changed. Build/runtime compatibility has not been separately verified.
+
+## Pass 7 — disable S3 serial logging, preserve Wi-Fi logs — 2026-11-20
+
+The owner reported inaccessible USB ports on two of three S3 audio renderers and requested eliminating unnecessary JTAG logging. ESPHome's published logger documentation (https://esphome.io/components/logger/) and the ESPHome 2026.4.0 logger source show that the S3 defaults to USB_SERIAL_JTAG for console logging; simply deleting the explicit `hardware_uart` setting would re-enable the same default. Set `logger.baud_rate: 0` instead, retaining `logger.level: WARN` and the already standardized `api.reboot_timeout: 0s`.
+
+Three S3 YAMLs received the same exact replacement:
+
+```yaml
+logger:
+  level: WARN
+  baud_rate: 0
+```
+
+Targets: Basement `house-audio-s3-1`, Music Room `house-audio-s3-2`, Garage stereo `house-audio-s3-5`.
+
+Verification: confirmed `baud_rate: 0` is documented by ESPHome as disabling serial logging while ESPHome's native API still provides remote logger messages; verified exactly three source-file logger edits in the GitHub diff. Runtime remote logging has not been exercised with these YAMLs. This affects the logger's serial output, not the board's USB flashing interface or the actual Snapclient transport.
