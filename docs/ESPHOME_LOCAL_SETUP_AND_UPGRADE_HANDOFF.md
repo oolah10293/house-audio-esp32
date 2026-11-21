@@ -218,3 +218,14 @@ Following the two successful `esphome config` validations, the owner reported **
 **Owner-reported outcome:** Both Rio and Bose compile commands passed. This conclusion is based on the owner's brief PASS response; separate compiler output, artifact paths/sizes/hashes, and device behavior have not yet been inspected. No additional firmware-source or dependency changes are implied by this report.
 
 **Next verification:** Read-only check that both new `firmware.bin` artifacts exist under the staging ESPHome build directories. Preserve the five-node staged configurations and existing working configuration folder. Any installation or acceptance checks are separate decisions after artifacts are verified.
+
+## Rio and Bose staged firmware artifact inventory — owner-reported 2026-11-20
+
+After owner-reported successful ESPHome 2026.4.0 compilation of both staged YAMLs, the owner ran a PowerShell recursive lookup of `firmware.bin` under `C:\esphome\staging\.esphome\build` and supplied this file inventory:
+
+| Device | Reported binary file | Reported size (bytes) |
+|---|---|---:|
+| Bose | `C:\esphome\staging\.esphome\build\bose-sub\.pioenvs\bose-sub\firmware.bin` | 1,018,240 |
+| Rio | `C:\esphome\staging\.esphome\build\house-audio-rio-sub\.pioenvs\house-audio-rio-sub\firmware.bin` | 996,608 |
+
+**Evidence level:** Exact paths and byte sizes are from the owner's pasted command output, not direct filesystem access or a binary hash/content inspection. This closes the staged-file presence/size check; it is not a record of hardware acceptance. Preserve existing local configuration files and the previously accepted five-node staging artifacts.
