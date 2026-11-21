@@ -1,0 +1,258 @@
+# Bose Sub v0.1.0 — automatic standby, Pi feedback and acknowledged wake.
+#
+# Existing wiring, unchanged:
+#   PCM5102A LCK -> XIAO D3 / GPIO4
+#   PCM5102A BCK -> XIAO D4 / GPIO5
+#   PCM5102A DIN -> XIAO D5 / GPIO6
+#   XIAO D6 / GPIO43 -> Bose pin 13 through 1k
+#   XIAO D7 / GPIO44 -> Bose pin 13 through a separate 1k
+#   XIAO GND -> Bose pin 7
+#   220 ohms between Bose pins 4 and 7
+#   PCM5102A L OUT -> Bose pin 9
+#   PCM5102A GND -> Bose pin 8
+#
+# Never connect Bose pin 1 (~28.8 V measured) directly to the XIAO.
+
+substitutions:
+  name: bose-sub
+  friendly_name: Bose Sub
+  house_server_url: http://192.168.1.12:8787
+
+esphome:
+  min_version: 2026.4.0
+  name: ${name}
+  friendly_name: ${friendly_name}
+
+  on_boot:
+    priority: -100
+    then:
+      # Apply restored Home Assistant settings before audio begins.
+      - lambda: |-
+          id(sub_dsp).set_lowpass_hz(id(sub_lowpass).state);
+          id(sub_dsp).set_lowcut_hz(id(sub_lowcut).state);
+          id(sub_dsp).set_phase_inverted(id(sub_phase_invert).state);
+          id(sub_dsp).set_crossover_bypass(id(sub_crossover_bypass).state);
+          id(bose_control).set_attenuation(static_cast<int>(id(bose_attenuation).state + 0.5f));
+          id(bose_control).set_mode(id(bose_mode).current_option().c_str());
+
+esp32:
+  board: seeed_xiao_esp32s3
+  variant: esp32s3
+  flash_size: 8MB
+  cpu_frequency: 240MHz
+  framework:
+    type: esp-idf
+    version: recommended
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+logger:
+  level: WARN
+  baud_rate: 0
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  fast_connect: true
+  power_save_mode: none
+  post_connect_roaming: false
+
+# Expose only the controls that actually work. Losing Home Assistant must not
+# reboot an otherwise-working audio renderer.
+api:
+  reboot_timeout: 0s
+
+ota:
+  - platform: esphome
+
+network:
+  enable_ipv6: false
+
+external_components:
+  # Newer ESPHome Snapclient PR #14389.
+  - source: github://luar123/esphome@4d3280bd35fdd970e628a22197f19ab0fded1a39
+    components: [snapclient]
+    refresh: 0s
+
+  # Runtime crossover and Bose control; immutable release component revision.
+  - source: github://oolah10293/house-audio-esp32@92608cf75bf470e91de00fb08437a606f7adeb96
+    components: [house_sub_dsp, house_bose]
+    refresh: 0s
+
+# Always does (L+R)/2 mono. The settings below are startup defaults; restored
+# Home Assistant values replace them during boot.
+house_sub_dsp:
+  id: sub_dsp
+  lowpass_hz: 90.0
+  lowcut_hz: 0.0
+  phase_inverted: false
+  crossover_bypass: false
+
+i2s_audio:
+  i2s_lrclk_pin: GPIO4
+  i2s_bclk_pin: GPIO5
+
+media_player:
+  - platform: snapclient
+    id: house_renderer
+    hostname: 192.168.1.12
+    port: 1704
+    name: ${friendly_name}
+    i2s_dout_pin: GPIO6
+
+    # PR #14389's HA-facing volume/mute write methods are not implemented.
+    # Keep the renderer running but hide those dead controls from HA.
+    internal: true
+
+house_bose:
+  id: bose_control
+  uart_id: bose_bus_rx
+  server_url: ${house_server_url}
+  tx_pin:
+    number: GPIO43
+    inverted: true
+    mode:
+      output: true
+      open_drain: true
+  status:
+    name: Bose Amplifier Status
+    entity_category: diagnostic
+
+select:
+  - platform: template
+    id: bose_mode
+    name: Bose Mode
+    icon: mdi:power-sleep
+    entity_category: config
+    options: [Auto, Force standby, Force awake]
+    initial_option: Auto
+    restore_value: true
+    optimistic: true
+    set_action:
+      - lambda: 'id(bose_control).set_mode(x);'
+
+# Restart-mode scripts debounce HA sliders: dragging a control sends/applies only
+# the final value after 150 ms instead of hammering the Bose bus or repeatedly
+# resetting filter state.
+script:
+  - id: bose_send_attenuation
+    mode: restart
+    parameters:
+      attenuation: int
+    then:
+      - delay: 150ms
+      - lambda: |-
+          id(bose_control).set_attenuation(attenuation);
+
+  - id: sub_apply_lowpass
+    mode: restart
+    parameters:
+      cutoff_hz: float
+    then:
+      - delay: 150ms
+      - lambda: |-
+          id(sub_dsp).set_lowpass_hz(cutoff_hz);
+
+  - id: sub_apply_lowcut
+    mode: restart
+    parameters:
+      cutoff_hz: float
+    then:
+      - delay: 150ms
+      - lambda: |-
+          id(sub_dsp).set_lowcut_hz(cutoff_hz);
+
+number:
+  # Native Bose attenuation: higher number = quieter. This is not a percentage.
+  - platform: template
+    id: bose_attenuation
+    name: Bose Hardware Attenuation
+    icon: mdi:volume-minus
+    entity_category: config
+    min_value: 0
+    max_value: 40
+    step: 1
+    initial_value: 12
+    restore_value: true
+    optimistic: true
+    mode: slider
+    set_action:
+      - script.execute:
+          id: bose_send_attenuation
+          attenuation: !lambda 'return static_cast<int>(x + 0.5f);'
+
+  - platform: template
+    id: sub_lowpass
+    name: Sub Low-Pass
+    icon: mdi:filter
+    entity_category: config
+    unit_of_measurement: Hz
+    min_value: 60
+    max_value: 160
+    step: 1
+    initial_value: 90
+    restore_value: true
+    optimistic: true
+    mode: slider
+    set_action:
+      - script.execute:
+          id: sub_apply_lowpass
+          cutoff_hz: !lambda 'return x;'
+
+  # Values are 0, 10, 20, 30, 40 or 50 Hz. Zero disables the high-pass.
+  - platform: template
+    id: sub_lowcut
+    name: Sub Low-Cut (0 = Off)
+    icon: mdi:filter-outline
+    entity_category: config
+    unit_of_measurement: Hz
+    min_value: 0
+    max_value: 50
+    step: 10
+    initial_value: 0
+    restore_value: true
+    optimistic: true
+    mode: slider
+    set_action:
+      - script.execute:
+          id: sub_apply_lowcut
+          cutoff_hz: !lambda 'return x;'
+
+switch:
+  - platform: template
+    id: sub_phase_invert
+    name: Sub Phase 180 Degrees
+    icon: mdi:sine-wave
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    turn_on_action:
+      - lambda: 'id(sub_dsp).set_phase_inverted(true);'
+    turn_off_action:
+      - lambda: 'id(sub_dsp).set_phase_inverted(false);'
+
+  # Bypasses both crossover filters for comparison. Mono summing and the
+  # selected 0/180-degree phase remain active.
+  - platform: template
+    id: sub_crossover_bypass
+    name: Sub Crossover Bypass
+    icon: mdi:filter-off
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    turn_on_action:
+      - lambda: 'id(sub_dsp).set_crossover_bypass(true);'
+    turn_off_action:
+      - lambda: 'id(sub_dsp).set_crossover_bypass(false);'
+
+uart:
+  id: bose_bus_rx
+  rx_pin: GPIO44
+  baud_rate: 4800
+  data_bits: 8
+  parity: NONE
+  stop_bits: 1
+  rx_buffer_size: 256
+  rx_timeout: 1
