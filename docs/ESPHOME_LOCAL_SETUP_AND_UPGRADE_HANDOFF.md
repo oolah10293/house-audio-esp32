@@ -193,3 +193,20 @@ These upstream documentation references **do not mean the local installation was
 - Whether all active YAML configurations are represented in GitHub.
 
 **Do not ask the owner to learn branches or rebuild the old setup just to answer these questions.** Inspect the files, explain the few key dependencies in ordinary language, and take one controlled step at a time.
+
+## Rio and Bose staged YAML configuration validation — owner-reported 2026-11-20
+
+The owner downloaded the current GitHub `main` YAMLs as `C:\esphome\staging\rio-subwoofer.yaml` and `C:\esphome\staging\bose-subwoofer.yaml`. Windows PowerShell reported file sizes 4,589 and 6,532 bytes respectively. These byte counts are owner-supplied staging observations, not local file hash verification.
+
+The owner then executed `$env:APPDATA\uv\tools\esphome\Scripts\python.exe -m esphome config` against each staged YAML, using ESPHome **2026.4.0**, and shared the command output.
+
+| Device | Configuration result | Evidence |
+|---|---|---|
+| Rio Subwoofer | **PASS** | `INFO Configuration is valid!`, `PASS: rio-subwoofer.yaml` |
+| Bose Sub | **PASS** | `INFO Configuration is valid!`, `PASS: bose-subwoofer.yaml` |
+
+For both, the resolved ESPHome configuration showed `logger.level: WARN` and `logger.baud_rate: 0`. Bose and Rio reported `house_sub_dsp.lowpass_hz: 80.0`, with low-cut sliders allowing 0–80 Hz in 5 Hz steps. Both retained the pinned `luar123/esphome` Snapclient source at `4d3280bd35fdd970e628a22197f19ab0fded1a39`, and distinct additional components at their existing pinned revisions. Bose's independent hardware attenuation and standby controls were represented in the resolved configuration. The expanded configuration still lists `hardware_uart: USB_SERIAL_JTAG` as a default, but `baud_rate: 0` disables serial logger output; the Bose 4800-baud amplifier UART is separately configured.
+
+Both validation commands emitted the non-fatal warning `cv.only_with_esp_idf was deprecated in 2026.1, will change behavior in 2026.6`. This warning did not prevent validation on ESPHome 2026.4.0. It is a future compatibility consideration, **not** authorization to change the pinned external components.
+
+**Scope of evidence:** The shared output establishes that both staged YAML configurations parsed and passed ESPHome validation in the owner's environment. It does not establish executable compatibility, runtime audio behavior, or the outcome of any later workflow. No firmware-source edits were made to reach this checkpoint.
