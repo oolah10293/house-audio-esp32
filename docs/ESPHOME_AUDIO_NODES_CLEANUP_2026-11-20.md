@@ -118,3 +118,17 @@ logger:
 Targets: Basement `house-audio-s3-1`, Music Room `house-audio-s3-2`, Garage stereo `house-audio-s3-5`.
 
 Verification: confirmed `baud_rate: 0` is documented by ESPHome as disabling serial logging while ESPHome's native API still provides remote logger messages; verified exactly three source-file logger edits in the GitHub diff. Runtime remote logging has not been exercised with these YAMLs. This affects the logger's serial output, not the board's USB flashing interface or the actual Snapclient transport.
+
+## Pass 8 — align C6 logger transport with S3 nodes — 2026-11-20
+
+At the user's request, added `logger.baud_rate: 0` to **Motorola** (`house-audio-c6-3`) and **Emerson** (`house-audio-c6-4`), keeping their existing `logger.level: WARN`. This matches the three S3 renderers' logger configuration exactly:
+
+```yaml
+logger:
+  level: WARN
+  baud_rate: 0
+```
+
+All five continue to have `api.reboot_timeout: 0s` for remote log viewing through the ESPHome native API. No Wi-Fi, Snapclient, I2S, device-identity, or address configurations changed. Only two C6 YAMLs and this checkpoint document changed.
+
+**Verified:** GitHub source edit and commit diff for the exact addition on each C6 node, and inspection of existing five-node logger/API declarations. **Not separately verified:** firmware compilation or hardware performance/resource effect.
