@@ -132,3 +132,9 @@ logger:
 All five continue to have `api.reboot_timeout: 0s` for remote log viewing through the ESPHome native API. No Wi-Fi, Snapclient, I2S, device-identity, or address configurations changed. Only two C6 YAMLs and this checkpoint document changed.
 
 **Verified:** GitHub source edit and commit diff for the exact addition on each C6 node, and inspection of existing five-node logger/API declarations. **Not separately verified:** firmware compilation or hardware performance/resource effect.
+
+## Pass 9 — final source configuration summary — 2026-11-20
+
+At the owner's direction, created [the consolidated final configuration and deployment-status summary](ESPHOME_FIVE_NODE_FINAL_CONFIGURATION_2026-11-20.md) and linked it from the repository README. It records all five source configurations, static addresses, the owner's confirmation of Pi-hole reservations (not a live Pi-hole query), the deliberate C6 fixed-point DSP override, the S3 logging-compatibility source, and what remains unvalidated or undeployed. This pass changes documentation only; the historical notes above remain unchanged.
+
+**Verified:** current GitHub YAML files, component source pins, existing cleanup commits and this documentation diff. **Not verified:** firmware builds from the final YAMLs, currently installed firmware identities, live DHCP state or real-world performance. Scope excludes other renderers (including Rio/Bose), the separate garage controller and the Lite-On CD player.

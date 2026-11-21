@@ -2,6 +2,8 @@
 
 ## Authoritative development baseline — main
 
+**Five audio renderers:** [final source configuration and deployment status](docs/ESPHOME_FIVE_NODE_FINAL_CONFIGURATION_2026-11-20.md) — Motorola, Emerson, Basement, Music Room, and Garage stereo. Source finalized; field acceptance pending.
+
 Start new work from `main`, not a historical feature branch. See [consolidation and Wi-Fi investigation](docs/MAIN_BASELINE_2026-11-20.md) for exact source identities, hardware acceptance, historical development branches and release gates. Working CD and Rio histories are consolidated here; immutable release and dependency pins remain unchanged. This is a source-only consolidation, not a new firmware build or deployment.
 
 ## Lite-On CD delivery: versioned names and no ambiguous packages (user requirement)
