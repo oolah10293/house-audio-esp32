@@ -262,3 +262,12 @@ Following successful OTA commands on both subwoofers, the owner answered **"they
 | Bose Sub | **PASS — owner confirmed** | **PASS — owner confirmed** |
 
 This does **not** establish Rio follow/mute transitions, Bose standby/wake acknowledgment or forced modes, restored Home Assistant tuning persistence, or long-term dropout-free stability. Those are separate functional checks. No firmware-source changes were made for this checkpoint.
+
+## Rio automatic mute and Bose delayed standby — owner-confirmed PASS (2026-11-20)
+
+The owner confirmed **"it does"** in response to the question: **"When the last assigned main speaker stops playing, does Rio mute automatically and Bose enter standby after its 30-second delay?"** Record these as **PASS by owner field report**:
+
+- **Rio:** Automatic follow/mute behavior when the last assigned main speaker stops playing.
+- **Bose:** Automatic standby after the configured 30-second delay under the same condition.
+
+The prior owner report separately confirmed playback and synchronization of both subwoofers. The present response does not separately verify Bose wake acknowledgment or Rio unmute after return, forced Bose modes, persistence of tuning settings, or long-term reliability; those remain untested or unreported. No firmware source change was made for this record.
