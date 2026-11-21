@@ -298,3 +298,24 @@ The owner chose **no additional backup** and executed the agreed local PowerShel
 **Intended final live audio filenames:** `house-audio-c6-3.yaml`, `house-audio-c6-4.yaml`, `house-audio-s3-1.yaml`, `house-audio-s3-2.yaml`, `house-audio-s3-5.yaml`, `rio-subwoofer.yaml`, and `bose-subwoofer.yaml`. The procedure targets only those seven destinations and the two obsolete audio filenames in the live folder; it does not intentionally modify unrelated YAMLs or the live `secrets.yaml`.
 
 **Remaining unverified, not blockers to the owner-reported cleanup:** ESPHome `config` validation from the final live paths, whether outside launcher scripts reference the two old YAML filenames, and an independent listing of the final live/staging directories. All staged compiled binaries were intentionally removed as part of cleanup and may be rebuilt from the retained sources if needed. No new firmware, configuration content, dependency, or device behavior change was authorized or made in GitHub. This checkpoint is documentation-only.
+
+
+## Post-cleanup live validation and obsolete-reference search — owner-reported PASS (2026-11-20)
+
+The owner ran the provided PowerShell validation loop using the local ESPHome Python interpreter (`$env:APPDATA\uv\tools\esphome\Scripts\python.exe -m esphome config`) on seven YAMLs under `C:\esphome\configs`. The pasted terminal output explicitly showed these seven individual **PASS** results:
+
+- `house-audio-c6-3.yaml`
+- `house-audio-c6-4.yaml`
+- `house-audio-s3-1.yaml`
+- `house-audio-s3-2.yaml`
+- `house-audio-s3-5.yaml`
+- `rio-subwoofer.yaml`
+- `bose-subwoofer.yaml`
+
+**Scope:** validation is owner-reported from the installed local ESPHome interpreter and final live YAML paths; it does not mean firmware was recompiled or uploaded again.
+
+The owner also executed a recursive search for literal references to `house-audio-s3-3.yaml` and `house-audio-c6-5.yaml` under `C:\esphome` across `*.ps1`, `*.cmd`, `*.bat`, `*.py`, `*.yaml`, `*.yml`, `*.json`, and `*.txt` files, excluding staging, ESPHome build caches, and matching timestamped backup trees. The reported output was **`PASS: No old filename references found in searched files`**. This is a negative result within that search scope only, not a complete proof that no references exist elsewhere or in excluded files. Errors in recursive listing/text search were silenced in that snippet.
+
+**Correction to staging checkpoint:** the owner's final `Get-ChildItem "C:\esphome\staging" -Force` produced `PathNotFound` (the staging directory **does not exist**). The subsequent `PASS: Staging empty` text was misleading: the PowerShell statement used an empty array after a non-terminating path error. Record the accurate result as **staging directory absent**, not as a verified existing-but-empty directory. The preceding clean-up script had used `Get-ChildItem | Remove-Item`, which deletes contents, not ordinarily the directory itself, so the exact reason the directory is absent is **not established**. No new staged binaries are required to consider this cleanup closed.
+
+**Final status:** seven live ESPHome configuration validation results PASS; obsolete filename reference scan found none in its declared scope; staging directory absent; no further cleanup action required at present. Prior deferred manual Bose-control/persistence and long-term-stability checks remain deferred as already agreed, not newly verified. No firmware or YAML source changes were introduced by this documentation update.
