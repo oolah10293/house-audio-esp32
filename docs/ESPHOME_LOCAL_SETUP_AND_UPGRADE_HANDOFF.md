@@ -1,12 +1,48 @@
 # ESPHome local setup and upgrade handoff
 
-Last reviewed: 2026-11-09. This is a **documentation-only** handoff. It does not authorize updates, builds, firmware uploads, merges, or replacement of a working installation.
+Last reviewed: 2026-11-20. This is a **documentation-only** handoff. It does not authorize updates, builds, firmware uploads, merges, or replacement of a working installation.
 
 ## Why this note exists
 
 The owner runs ESPHome for several ESP32-based house-audio renderers and other devices. The local development setup was difficult to get working originally. Do not ask the owner to reconstruct installation history or GitHub branch history from memory when it can be recovered from the repositories and previous conversations.
 
 **Practical priority:** Preserve the working Windows-based ESPHome installation, its launcher, and existing YAML configurations. Investigate an update in an isolated environment; do not make an in-place upgrade the first experiment.
+
+## Current Windows deployment observations — 2026-11-20
+
+The user provided screenshots of the running Windows ESPHome dashboard and its console, and separately ran the read-only version command.
+
+- **ESPHome version:** `2026.4.0` (user-supplied `Version: 2026.4.0` output).
+- **Working configuration directory:** `C:\esphome\configs` (dashboard console explicitly displays `Config folder: C:\esphome\configs`).
+- **Dashboard URL:** `http://localhost:6052`, seen open in the browser.
+- **Running dashboard process:** console logs invoke `C:\Users\John\AppData\Roaming\uv\tools\esphome\Scripts\python.exe` to run `-m esphome` for commands. This verifies that executable was used by the dashboard, but **not** the complete launcher's contents or installation history.
+- **Local filenames matter:** live dashboard lists Motorola as `house-audio-s3-3.yaml` and Garage stereo as `house-audio-c6-5.yaml`. Canonical GitHub copies are `firmware/nodes/house-audio-c6-3.yaml` and `firmware/nodes/house-audio-s3-5.yaml`, respectively, because their internal names and hardware types differ from those old filenames. Do not rename local files without checking deployment/OTA references.
+- **ESPHome minimum version:** all five finalized YAMLs require `2026.3.0`, so `2026.4.0` satisfies the declared minimum. Component compatibility and actual compilation are not yet verified.
+
+### Working configuration backup — destination and procedure
+
+**Source (do not modify):** `C:\esphome\configs`
+
+**Backup destination (timestamped sibling folder):**
+`C:\esphome\configs-backup-YYYYMMDD-HHmmss`
+
+For example, the following is an **example name only, not an asserted existing folder**:
+`C:\esphome\configs-backup-20261120-202700`.
+
+Run this from a separate PowerShell window to copy the entire configuration folder without replacing or moving the original:
+
+```powershell
+$backup = "C:\esphome\configs-backup-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+Copy-Item -LiteralPath "C:\esphome\configs" -Destination $backup -Recurse -Force
+Write-Host "Backup created at: $backup"
+Test-Path "$backup\secrets.yaml"
+```
+
+The exact resulting timestamped path must be copied from PowerShell output and **recorded after completion**, not guessed from the current date. Confirm the destination exists and contains the expected YAML files and `secrets.yaml`; a successful copy should not overwrite `C:\esphome\configs`. `secrets.yaml` must remain local and must **never** be committed to GitHub.
+
+**Backup status as of this checkpoint: NOT YET CONFIRMED.** The command was supplied in the conversation, but the user has not reported running it or supplied the actual destination. Do not claim a rollback copy exists until confirmed. If a full rollback is later needed, do not automatically overwrite the live config folder; identify the precise backup and restore plan first.
+
+**Next intended checkpoint:** After the owner verifies the backup, record its real folder name here; then compare the locally running Basement YAML with the GitHub version before making a pilot firmware change. Preserve the working Windows launcher and installed ESPHome toolchain.
 
 ## User-reported local setup/history (not independently inspected)
 
@@ -47,7 +83,7 @@ These upstream documentation references **do not mean the local installation was
 
 ## Unresolved / must not guess
 
-- Current ESPHome version on the PC; exact `uv` environment; launcher file name/content; Windows path to local YAML.
+- Exact contents/path of the dashboard launcher; full `uv` installation details beyond the observed Python executable; path and verification of any completed configuration backup. ESPHome version `2026.4.0` and config path `C:\esphome\configs` are now user-confirmed/visible in screenshots.
 - Which GitHub branches or PRs every current node actually references.
 - Whether the forked Snapclient logging fix is required by the intended newer release.
 - Whether all active YAML configurations are represented in GitHub.
