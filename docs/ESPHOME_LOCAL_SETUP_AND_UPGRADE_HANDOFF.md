@@ -58,6 +58,26 @@ After confirming that the Basement stereo firmware OTA completed and audible pla
 
 Next rollout group: four remaining precompiled firmware images — Motorola radio `house-audio-c6-3` at `192.168.1.161`, Emerson radio `house-audio-c6-4` at `192.168.1.179`, Music Room stereo `house-audio-s3-2` at `192.168.1.100`, Garage stereo `house-audio-s3-5` at `192.168.1.124`. Preserve the current `C:\esphome\configs` directory and backup. A sequential PowerShell batch should use `uv\tools\esphome\Scripts\python.exe -m esphome upload` with the corresponding **already compiled** `firmware.bin` per device, capture separate logs, and stop at first upload failure. User confirmation of each device returning to audio remains pending.
 
+## Remaining four OTA uploads — owner-reported PASS, 2026-11-20
+
+The owner executed the previously supplied sequential PowerShell batch using existing precompiled binaries and posted these results:
+
+```text
+Uploading house-audio-c6-3 (192.168.1.161) ...
+PASS: house-audio-c6-3
+Uploading house-audio-c6-4 (192.168.1.179) ...
+PASS: house-audio-c6-4
+Uploading house-audio-s3-2 (192.168.1.100) ...
+PASS: house-audio-s3-2
+Uploading house-audio-s3-5 (192.168.1.124) ...
+PASS: house-audio-s3-5
+All four OTA uploads completed successfully.
+```
+
+**Evidence:** four ESPHome OTA command exit statuses as summarized by the owner's PowerShell output. No individual upload logs or independent post-boot network/device telemetry were provided. All five targeted nodes now have **reported successful OTA uploads**, including the previously accepted Basement stereo (`.117`). The Basement's audible playback, sync, and Snapcast volume response were subsequently confirmed by the owner. The other four have **not yet been field-confirmed** for audible playback, synchronization, volume or dropout-free stability in this chat.
+
+**Next checkpoint:** ask the owner to play music through the four additional nodes and confirm reconnect/stream reception, synchronization, and Snapcast volume behavior. Do not classify an upload PASS as a separate hardware acceptance PASS. Keep the compiled artifacts and original live configuration backup until field acceptance is complete.
+
 ## Current Windows deployment observations — 2026-11-20
 
 The user provided screenshots of the running Windows ESPHome dashboard and its console, and separately ran the read-only version command.
