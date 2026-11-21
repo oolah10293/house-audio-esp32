@@ -1,6 +1,12 @@
 # Final five-node ESPHome audio configuration — 2026-11-20
 
-**Status: FINALIZED SOURCE BASELINE — deployment and field validation pending.** The canonical files are on `main` in `firmware/nodes/`. This document captures the agreed source configuration as of the last source edit, commit `ba6b3ee9008eaace532ebc1567017e75964bceb3`. The summary itself is documentation; it does not establish which firmware images are installed on hardware.
+**Status as of 2026-11-20: FINALIZED SOURCE BASELINE; five-node initial functional rollout accepted by owner report.** The canonical files are on `main` in `firmware/nodes/`. This document captures the agreed source configuration as of the last source edit, commit `ba6b3ee9008eaace532ebc1567017e75964bceb3`. The summary itself is documentation; it does not establish which firmware images are installed on hardware.
+
+## Installed firmware and field acceptance update — 2026-11-20
+
+All five ESPHome 2026.4.0 staged configurations were reported to pass validation and compilation on the owner's Windows PC, and the owner supplied read-only results identifying all five `firmware.bin` paths and sizes. The owner then reported successful OTA uploads of those precompiled images to all five devices. The Basement stereo returned to playback; the owner confirmed its synchronization and Snapcast volume controls, then independently confirmed **synchronization and volume controls on the other four nodes**.
+
+**Owner-confirmed functional status: PASS for Motorola Radio (C6-3), Emerson Radio (C6-4), Basement stereo (S3-1), Music Room stereo (S3-2), and Garage stereo (S3-5).** This is a field report rather than an independently inspected device trace or binary hash check. Ongoing dropout-free stability and remote WARN log observations remain unverified. The initial rollout is complete; do not misread the historical pre-deployment descriptions below as current installation status. Details, paths and exact evidence are in [ESPHOME_LOCAL_SETUP_AND_UPGRADE_HANDOFF.md](ESPHOME_LOCAL_SETUP_AND_UPGRADE_HANDOFF.md#final-five-node-functional-acceptance--owner-confirmed-2026-11-20).
 
 ## Five-device inventory and IP assignments
 
