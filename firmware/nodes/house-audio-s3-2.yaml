@@ -26,6 +26,11 @@ wifi:
   fast_connect: true
   post_connect_roaming: false
   power_save_mode: none
+
+  manual_ip:
+    static_ip: 192.168.1.100
+    gateway: 192.168.1.1
+    subnet: 255.255.255.0
   use_address: 192.168.1.100
 
 ota:

@@ -67,3 +67,28 @@ After explicit user instruction to finish logging standardization, updated the f
 - No changes to Wi-Fi addresses/fast_connect, OTA, Snapclient component sources, chip/PSRAM/I2S settings, names or IDs.
 
 **Verification performed:** source-text checks for one WARN logger on each file, all five native API stanzas, GitHub commit diff review. **Not performed:** local ESPHome configuration parsing, compilation, installed firmware or runtime performance testing. Native API network log capture and logger semantics verified against the published ESPHome logger/API documentation; actual connected logging performance was not hardware-tested.
+
+## Pass 5 — static IP addresses for three S3 stereo nodes — 2026-11-20
+
+The owner supplied a screenshot of network client/device records associating the following **hostnames, IP addresses, and MAC addresses**:
+
+| Device | ESPHome hostname | Configured static IP | Reported MAC |
+| --- | --- | --- | --- |
+| Basement stereo | `house-audio-s3-1` | `192.168.1.117` | `e0:72:a1:f8:4c:a8` |
+| Music Room stereo | `house-audio-s3-2` | `192.168.1.100` | `e0:72:a1:f8:4c:98` |
+| Garage stereo | `house-audio-s3-5` | `192.168.1.124` | `44:bd:8d:ec:51:e0` |
+
+Added to each S3's `wifi:` section:
+
+```yaml
+manual_ip:
+  static_ip: <device address from screenshot>
+  gateway: 192.168.1.1
+  subnet: 255.255.255.0
+```
+
+Gateway and subnet match the existing Motorola/Emerson C6 node configurations in this repository. The Music Room's existing `wifi.use_address: 192.168.1.100` is intentionally retained, since it matches its static IP and may be used for management and upload targeting. All other YAML values were retained.
+
+**DHCP conflict precaution:** The supplied screenshot demonstrates IP/hostname/MAC associations but does **not by itself prove** they are fixed DHCP reservations or excluded from the DHCP allocation pool. Before using static addresses on the network, check Pi-hole DHCP reservations for these MAC/IP pairs (or remove those IPs from the dynamic DHCP pool) so another device cannot receive them. Do not mistake an observed active lease for a confirmed reservation.
+
+**Verified:** source changes to three YAMLs and GitHub diff. **Not verified:** Pi-hole reservation state, current DHCP allocation scope, ESPHome configuration validation, or physical network behavior. This is a source-only checkpoint.
