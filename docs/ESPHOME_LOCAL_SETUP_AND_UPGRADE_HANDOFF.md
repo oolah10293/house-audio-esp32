@@ -251,3 +251,14 @@ The owner executed the supplied PowerShell loop that calls `esphome upload <stag
 | Bose Sub | `192.168.1.110` | **PASS (owner report)** |
 
 **Functional acceptance still pending:** Audible bass, synchronization with the house speakers, Rio follow/mute behavior when assigned speakers leave and return, Bose amplifier acknowledgement and standby/awake behavior, and restored tuning controls. No firmware-source edits are implied by this checkpoint.
+
+## Rio and Bose playback and synchronization — owner-confirmed PASS (2026-11-20)
+
+Following successful OTA commands on both subwoofers, the owner answered **"they are"** to the explicit question **"Are both subwoofers playing and synchronized?"**. This confirms, by owner field report, **audible playback and synchronization PASS** for both Rio and Bose with the house audio system.
+
+| Device | Audible playback | Synchronization |
+|---|---|---|
+| Rio Subwoofer | **PASS — owner confirmed** | **PASS — owner confirmed** |
+| Bose Sub | **PASS — owner confirmed** | **PASS — owner confirmed** |
+
+This does **not** establish Rio follow/mute transitions, Bose standby/wake acknowledgment or forced modes, restored Home Assistant tuning persistence, or long-term dropout-free stability. Those are separate functional checks. No firmware-source changes were made for this checkpoint.
