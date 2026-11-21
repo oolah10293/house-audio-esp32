@@ -40,7 +40,7 @@ external_components:
   - source:
       type: git
       url: https://github.com/oolah10293/esphome
-      ref: fix-snapclient-log-tag
+      ref: 7d84414a54235a215fd2420bd6a8ac00156d488e
     components: [snapclient]
     refresh: 1d
 
