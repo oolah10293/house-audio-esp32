@@ -229,3 +229,14 @@ After owner-reported successful ESPHome 2026.4.0 compilation of both staged YAML
 | Rio | `C:\esphome\staging\.esphome\build\house-audio-rio-sub\.pioenvs\house-audio-rio-sub\firmware.bin` | 996,608 |
 
 **Evidence level:** Exact paths and byte sizes are from the owner's pasted command output, not direct filesystem access or a binary hash/content inspection. This closes the staged-file presence/size check; it is not a record of hardware acceptance. Preserve existing local configuration files and the previously accepted five-node staging artifacts.
+
+## Rio and Bose target address inventory — owner screenshot, 2026-11-20
+
+The owner supplied a device listing screenshot identifying the intended local deployment targets:
+
+| Device label in screenshot | IPv4 address |
+|---|---|
+| `bose-sub` | `192.168.1.110` |
+| `house-audio-rio-sub` | `192.168.1.131` |
+
+The screenshot establishes the address-to-device label mapping at the time shown. It is not a live connectivity test or confirmation of a successful update. Compiled artifacts and configuration validation are recorded in the preceding checkpoints; runtime/OTA outcomes remain to be reported separately.
