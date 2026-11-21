@@ -210,3 +210,11 @@ For both, the resolved ESPHome configuration showed `logger.level: WARN` and `lo
 Both validation commands emitted the non-fatal warning `cv.only_with_esp_idf was deprecated in 2026.1, will change behavior in 2026.6`. This warning did not prevent validation on ESPHome 2026.4.0. It is a future compatibility consideration, **not** authorization to change the pinned external components.
 
 **Scope of evidence:** The shared output establishes that both staged YAML configurations parsed and passed ESPHome validation in the owner's environment. It does not establish executable compatibility, runtime audio behavior, or the outcome of any later workflow. No firmware-source edits were made to reach this checkpoint.
+
+## Rio and Bose staged compilation — owner-reported PASS (2026-11-20)
+
+Following the two successful `esphome config` validations, the owner reported **"pass"** in response to the supplied PowerShell loop invoking `$env:APPDATA\uv\tools\esphome\Scripts\python.exe -m esphome compile` for `C:\esphome\staging\rio-subwoofer.yaml` and `C:\esphome\staging\bose-subwoofer.yaml`.
+
+**Owner-reported outcome:** Both Rio and Bose compile commands passed. This conclusion is based on the owner's brief PASS response; separate compiler output, artifact paths/sizes/hashes, and device behavior have not yet been inspected. No additional firmware-source or dependency changes are implied by this report.
+
+**Next verification:** Read-only check that both new `firmware.bin` artifacts exist under the staging ESPHome build directories. Preserve the five-node staged configurations and existing working configuration folder. Any installation or acceptance checks are separate decisions after artifacts are verified.
