@@ -44,6 +44,14 @@ The owner ran `fc.exe /N "C:\esphome\configs\house-audio-s3-1.yaml" "C:\esphome\
 
 **Next field action:** Controlled Basement stereo OTA to `192.168.1.117` with the **precompiled** firmware and staged YAML, then check Snapcast reconnect, audible output, synchronization, volume control and Wi-Fi stability before moving on to the other four. The CLI documented form `esphome upload <staged.yaml> --device 192.168.1.117 --file <existing firmware.bin>` uploads the prebuilt image without invoking compilation. An OTA upload is a distinct owner-executed action; do not state it has happened until the owner reports the result.
 
+## Basement stereo OTA pilot — owner-reported field result, 2026-11-20
+
+The owner reported: **"it flashed and started playing again"** after executing the previously supplied precompiled-bin OTA command for Basement stereo (`house-audio-s3-1`, `192.168.1.117`). This is **user-confirmed evidence** of completed OTA, restart/reconnection and audible playback. The chat did not include full upload logs or independent network telemetry; do not claim separate verification from the device.
+
+**Accepted so far:** OTA command completed per owner's report, node returned to audible playback. **Not yet field checked:** sustained audio stability, synchronization with a second node, volume control, API logger connection, the exact flashed firmware hash. These must not be silently marked PASS.
+
+The other four node binaries exist in the owner's staging directory per their path/size checks, but none has been reported installed in this rollout. The sensible next action is a short listening/synchronization/volume check on Basement, then sequential OTA uploads of the four **already compiled** binaries (`house-audio-c6-3` at `.161`, `house-audio-c6-4` at `.179`, `house-audio-s3-2` at `.100`, `house-audio-s3-5` at `.124`), capturing each outcome. Do not mistake a suggested batch command for a deployment that has actually happened. Preserve working configs and the existing backup.
+
 ## Current Windows deployment observations — 2026-11-20
 
 The user provided screenshots of the running Windows ESPHome dashboard and its console, and separately ran the read-only version command.
