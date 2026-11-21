@@ -44,6 +44,24 @@ The exact resulting timestamped path must be copied from PowerShell output and *
 
 **Next intended checkpoint:** Compare the locally running Basement stereo YAML with the finalized GitHub version before any pilot firmware update. Maintain this timestamped backup and preserve the working Windows launcher and installed ESPHome toolchain.
 
+## All-five staged YAML validation — 2026-11-20
+
+**User-reported result: PASS for all five**, using the existing `2026.4.0` Windows ESPHome Python environment and a staged directory `C:\esphome\staging`. The owner ran the previously supplied PowerShell loop downloading the five canonical GitHub YAMLs from the fixed `main` commit `98497355fbf6c03afec042ac95dca37630354b76` and copying `secrets.yaml` from the working config folder, then executing `python -m esphome config` on each one.
+
+The owner pasted the following exact summarized results:
+
+```text
+PASS: house-audio-c6-3.yaml
+PASS: house-audio-c6-4.yaml
+PASS: house-audio-s3-1.yaml
+PASS: house-audio-s3-2.yaml
+PASS: house-audio-s3-5.yaml
+```
+
+**Evidence level:** This is direct user-provided PowerShell output of five zero-exit-status configuration checks; the individual `*.validation.log` files were not provided or inspected. The `esphome config` command checks configuration syntax and component setup; it is **not** an ESP-IDF toolchain build or a device/OTA test. No compile/test/deployment result is established. The live configurations in `C:\esphome\configs` were not intentionally replaced during staging. The timestamped pre-change backup remains `C:\esphome\configs-backup-20261120-202826`.
+
+**Next step requires separate explicit owner authorization to compile.** Plan is to compile all five staged configurations in a batch with individually captured logs, check all results, and only then plan controlled OTA installation. Do not assume a successful `config` check establishes compilation success.
+
 ## User-reported local setup/history (not independently inspected)
 
 - The working ESPHome installation is on a PC (not the Raspberry Pi). A launcher written during the project opens a command-line window; the owner then uses a browser interface. The launcher contents and exact command are **not yet inspected**.

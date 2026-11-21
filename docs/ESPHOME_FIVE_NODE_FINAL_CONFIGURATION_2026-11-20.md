@@ -80,7 +80,7 @@ All I2S pin mappings, device IDs and friendly names are intentionally retained.
 
 **User-confirmed:** Pi-hole reservations for the five audio-node addresses were reported completed, including the three new S3 reservations.
 
-**Still unverified:** ESPHome configuration validation of the full revised files; build/toolchain compatibility with the owner's actual Windows ESPHome installation; installed firmware revision on each device; OTA/boot, native API logging, Wi-Fi association and audio performance with this final set of YAMLs. No performance/resource benchmark exists for the final configurations. Do not describe any of those as tested or deployed.
+**User-reported configuration validation (2026-11-20):** all five canonical YAMLs passed `python -m esphome config` in the owner's existing Windows ESPHome 2026.4.0 environment, staged at `C:\esphome\staging`; see [the handoff checkpoint](ESPHOME_LOCAL_SETUP_AND_UPGRADE_HANDOFF.md#all-five-staged-yaml-validation--2026-11-20). The owner's five PASS lines were supplied, but full validation logs were not independently inspected. **Still unverified:** compiled firmware/toolchain success, installed firmware revision on each device, OTA/boot, native API logging, Wi-Fi association and audio performance with this final set of YAMLs. No performance/resource benchmark exists for the final configurations. Do not describe compilation or deployment as tested.
 
 **Scope:** These five ESPHome audio renderers only. Do not include the distinct `garage-node.yaml` garage-door controller, the Bose or Rio subwoofer nodes, or the Lite-On CD device in this five-node sign-off. Their own state and documentation remain separate.
 
