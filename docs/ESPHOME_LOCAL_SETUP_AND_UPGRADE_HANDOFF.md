@@ -8,6 +8,17 @@ The owner runs ESPHome for several ESP32-based house-audio renderers and other d
 
 **Practical priority:** Preserve the working Windows-based ESPHome installation, its launcher, and existing YAML configurations. Investigate an update in an isolated environment; do not make an in-place upgrade the first experiment.
 
+## Assistant action boundary — repeated authorization mistake (2026-11-20)
+
+The owner explicitly corrected the assistant **three times** for repeatedly appending `no flashing without your go-ahead` or asking for approval for actions that the assistant **cannot perform on the owner's Windows PC**. This instruction is a persistent workflow correction, not an authorization to execute a future operation.
+
+- **When the assistant cannot execute the operation:** Provide the exact, ready-to-run command or plan, distinguish what it does from what it does not do, and let the owner decide whether to execute it on their own machine. **Do not frame this as a request for the assistant's permission to compile or flash, and do not add repetitive authorization disclaimers to every response.**
+- **When the assistant can actually perform an action:** Require the owner's explicit authorization before the assistant initiates a firmware/software build, packaging, installer, release, or flashing operation. Discussing code, suggesting a command, agreeing on a design or replying "sounds good" does not grant the assistant that authorization. This safeguard is important; apply it to actions the assistant can really take.
+- **Documentation, read-only inspection and progress checkpoints:** Can proceed as part of authorized ongoing assistance. Accurately label verified versus unverified results. Never imply an update happened on a device without the owner's reported evidence.
+- **Windows execution environment:** Do not invoke plain `python -m esphome` in command examples unless its interpreter is independently verified. The owner's global `python` resolved to `C:\Users\John\AppData\Local\Programs\Python\Python314\python.exe` and lacked ESPHome. The previously observed ESPHome interpreter is `C:\Users\John\AppData\Roaming\uv\tools\esphome\Scripts\python.exe`; verify its existence and version before compilation.
+
+**Compiler checkpoint from owner-supplied logs:** A five-file batch command that invoked the global Python 3.14 failed on **all five** with `No module named esphome`. These failures occurred **before firmware compilation**; no firmware compile status is established from that attempt. A corrected batch command using the explicit `uv\tools\esphome\Scripts\python.exe` interpreter was supplied, but its result has **not yet been reported** as of this checkpoint. Do not claim five successful builds or rerun them merely because the first batch failed.
+
 ## Current Windows deployment observations — 2026-11-20
 
 The user provided screenshots of the running Windows ESPHome dashboard and its console, and separately ran the read-only version command.
@@ -60,7 +71,7 @@ PASS: house-audio-s3-5.yaml
 
 **Evidence level:** This is direct user-provided PowerShell output of five zero-exit-status configuration checks; the individual `*.validation.log` files were not provided or inspected. The `esphome config` command checks configuration syntax and component setup; it is **not** an ESP-IDF toolchain build or a device/OTA test. No compile/test/deployment result is established. The live configurations in `C:\esphome\configs` were not intentionally replaced during staging. The timestamped pre-change backup remains `C:\esphome\configs-backup-20261120-202826`.
 
-**Next step requires separate explicit owner authorization to compile.** Plan is to compile all five staged configurations in a batch with individually captured logs, check all results, and only then plan controlled OTA installation. Do not assume a successful `config` check establishes compilation success.
+**Next step (owner's Windows PC):** The assistant should give the owner one command to compile all five staged configurations in a batch with individually captured logs, then help interpret the results and plan controlled OTA installation. The assistant cannot run commands on the owner's PC, so **do not ask the owner for authorization as if the assistant were about to run them**. Separate explicit owner authorization remains necessary before the assistant itself initiates a build, package, firmware release or installation when it has the capability to do so. Do not assume a successful `config` check establishes compilation success.
 
 ## User-reported local setup/history (not independently inspected)
 
