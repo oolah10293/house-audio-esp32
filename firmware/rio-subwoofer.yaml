@@ -39,8 +39,8 @@ psram:
   speed: 80MHz
 
 logger:
-  level: DEBUG
-  hardware_uart: USB_SERIAL_JTAG
+  level: WARN
+  baud_rate: 0
 
 wifi:
   ssid: !secret wifi_ssid
