@@ -6,4 +6,4 @@ static constexpr char HOME_WIFI_PASSWORD[] = "REPLACE_WITH_YOUR_WIFI_PASSWORD";
 
 // Pi gateway is already configured to the House Music Pi.
 static constexpr char PI_GATEWAY_IP[] = "192.168.1.12";
-static constexpr char SOURCE_DISPLAY_NAME[] = "CD Player";
+static constexpr char SOURCE_DISPLAY_NAME[] = "LiteOn CD Player";
