@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# Pi-side installer for the already-compiled, checksum-verified LiteOn CD player 3.5 firmware.
+# Pi-side installer for the already-compiled, checksum-verified LiteOn CD player 3.6 firmware.
 set -euo pipefail
 
 HOST="${LITEON_HOST:-192.168.1.175}"
-URL="https://github.com/oolah10293/house-audio-esp32/releases/download/liteon-cd-3.5/LiteOn.CD.player.3.5.zip"
-EXPECTED_ZIP="607dafcacf676bc3b173e750e7b0b6f9392a648ccf9b8c8b16270b9d7240c115"
+URL="https://github.com/oolah10293/house-audio-esp32/releases/download/liteon-cd-3.6/LiteOn.CD.player.3.6.zip"
+EXPECTED_ZIP="798d4ff5921a93a493e7ea1cc76ca3fc6085f0298c4f4ea4d3b6848e39a5ffe9"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
 command -v curl >/dev/null || { echo "ERROR: curl not installed" >&2; exit 1; }
 command -v python3 >/dev/null || { echo "ERROR: python3 not installed" >&2; exit 1; }
-echo "LiteOn CD player 3.5 — Pi OTA installer"
+echo "LiteOn CD player 3.6 — Pi OTA installer"
 echo "Downloading verified firmware from GitHub..."
 curl --fail --location --silent --show-error --retry 2 "$URL" -o "$WORK/release.zip"
 printf '%s  %s\n' "$EXPECTED_ZIP" "$WORK/release.zip" | sha256sum --check --status || {
