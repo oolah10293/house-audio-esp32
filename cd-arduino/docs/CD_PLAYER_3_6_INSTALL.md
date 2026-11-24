@@ -46,3 +46,40 @@ Physical OTA and acceptance checks performed by the user:
 3.5 remains the functional rollback baseline. No physical OTA success
 is claimed without actual Pi output. Full release SHA, CI run, hash and
 user acceptance are to be recorded after they exist.
+
+## Verified build and release — 2026-11-23 (US Eastern)
+
+- Compiled **exact source commit**: `6aeecb5314b51595f2db2d3b444ce9fc591d1af1`,
+  the marker-only authorized commit following merged source PR #9.
+- [GitHub Actions run 45310557918](https://github.com/oolah10293/house-audio-esp32/actions/runs/45310557918):
+  **PASS** for marker authorization, pinned Arduino core installation,
+  XIAO ESP32-S3 compile, source/package/binary integrity checks, artifact
+  upload, and release publication.
+- Published package:
+  [LiteOn.CD.player.3.6.zip](https://github.com/oolah10293/house-audio-esp32/releases/download/liteon-cd-3.6/LiteOn.CD.player.3.6.zip).
+  GitHub published asset size **548,021 bytes** and SHA-256
+  `798d4ff5921a93a493e7ea1cc76ca3fc6085f0298c4f4ea4d3b6848e39a5ffe9`.
+- Existing `cd-arduino/tools/install-liteon.sh` has been updated to pin the
+  **exact URL and SHA-256**. The Pi installs via the existing
+  `update_cd_from_pi.py` helper, which validates the binary digest and
+  requires that the S3 report the expected compiled source SHA after reboot.
+- **Hardware OTA and post-flash source-name registration are still
+  unverified**. The user must run the installer on the House Music Pi.
+  Do not claim installation based on the GitHub release alone.
+
+### OTA installer
+
+Stop CD playback. On the Pi run:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/oolah10293/house-audio-esp32/main/cd-arduino/tools/install-liteon.sh | bash
+```
+
+The script downloads and verifies the pinned ZIP then runs Pi-origin OTA
+against `192.168.1.175` by default. It does not USB-flash or require
+credentials to be disclosed. The device persists its home Wi-Fi in NVS.
+
+Success requires `PASS: ESP32 reports expected running commit:
+6aeecb5314b51595f2db2d3b444ce9fc591d1af1`, followed by a gateway
+registration where `name` is **LiteOn CD Player**. Confirm the same node is
+still available on the Sources page and audio/automatic takeover work.
