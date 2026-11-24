@@ -1,3 +1,3 @@
 #pragma once
-#define CD_RELEASE_VERSION "3.5"
+#define CD_RELEASE_VERSION "3.6"
 #define CD_SOURCE_SHA "LOCAL_UNVERIFIED"
