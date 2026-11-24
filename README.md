@@ -10,7 +10,7 @@ Start new work from `main`, not a historical feature branch. See [consolidation 
 
 ## Lite-On CD delivery: versioned names and no ambiguous packages (user requirement)
 
-**Current installed firmware: 3.5** — verified CI build, ZIP and user-confirmed OTA image identity. Runtime Wi-Fi power-save state and network improvement pending. [Installation and exact release evidence](cd-arduino/docs/CD_PLAYER_3_5_INSTALL.md). 3.4 remains the last functionally accepted rollback baseline.
+**LiteOn 3.6 is built and published for Pi OTA:** the only functional source change is the S3's registered display name, now `LiteOn CD Player`. Exact compiled SHA `6aeecb5314b51595f2db2d3b444ce9fc591d1af1`; [successful CI](https://github.com/oolah10293/house-audio-esp32/actions/runs/45310557918), [verified release and OTA instructions](cd-arduino/docs/CD_PLAYER_3_6_INSTALL.md). **Hardware installation not yet verified.** The last owner-verified installed image is **3.5**, whose Wi-Fi modem-sleep state and six-speaker CD playback were accepted in [v3.5 field evidence](cd-arduino/docs/CD_PLAYER_3_5_INSTALL.md). 3.5 remains the immediate rollback version.
 
 **Read this before touching the Lite-On SOHW-1633SX CD sketch or sending any CD files.**
 
