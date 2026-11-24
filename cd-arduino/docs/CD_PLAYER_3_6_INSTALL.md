@@ -83,3 +83,23 @@ Success requires `PASS: ESP32 reports expected running commit:
 6aeecb5314b51595f2db2d3b444ce9fc591d1af1`, followed by a gateway
 registration where `name` is **LiteOn CD Player**. Confirm the same node is
 still available on the Sources page and audio/automatic takeover work.
+
+## Pi OTA identity result — user report, 2026-11-23 (US Eastern)
+
+The user supplied the following output from the pinned Pi-to-S3 OTA helper:
+
+```text
+Image accepted; waiting for reboot and firmware identity...
+PASS: ESP32 reports expected running commit: 6aeecb5314b51595f2db2d3b444ce9fc591d1af1
+Running image MD5: 52692fc99f66637743dfba3f982b3c6c
+```
+
+**PASS — running application identity following OTA**, based on the user's
+actual Pi terminal output. This verifies that the S3 rebooted and returned
+the expected source identity; the updater reports MD5
+`52692fc99f66637743dfba3f982b3c6c`.
+
+**Still unverified:** The gateway's current registered `name` field, the
+Sources page rendering **LiteOn CD Player**, and post-flash CD track playback,
+automatic CD takeover and session restoration. These require new field
+observations, not assumptions from the compile or source identity.
