@@ -32,7 +32,7 @@ jobs:
           set -euo pipefail
           marker=cd-arduino/ci/authorized-build-request.txt
           test "$(git diff-tree --no-commit-id --name-only -r HEAD)" = "$marker"
-          grep -qx 'BUILD_AND_PACKAGE 20261120-liteon-3-5' "$marker"
+          grep -qx 'BUILD_AND_PACKAGE 20261123-liteon-3-6' "$marker"
       - name: Record source revision
         run: |
           set -euo pipefail
@@ -49,7 +49,7 @@ jobs:
         run: |
           set -euo pipefail
           cp cd-arduino/HouseAudioCDInput/LocalNetworkConfig.example.h cd-arduino/HouseAudioCDInput/LocalNetworkConfig.h
-          printf '#pragma once\n#define CD_RELEASE_VERSION "3.5"\n#define CD_SOURCE_SHA "%s"\n' "$SOURCE_SHA" > cd-arduino/HouseAudioCDInput/src/BuildIdentity.h
+          printf '#pragma once\n#define CD_RELEASE_VERSION "3.6"\n#define CD_SOURCE_SHA "%s"\n' "$SOURCE_SHA" > cd-arduino/HouseAudioCDInput/src/BuildIdentity.h
           arduino-cli compile --fqbn esp32:esp32:XIAO_ESP32S3 --warnings all \
             --build-property build.partitions=default --build-property upload.maximum_size=1310720 \
             --output-dir "$RUNNER_TEMP/cd-build" cd-arduino/HouseAudioCDInput
@@ -63,7 +63,7 @@ jobs:
           from zipfile import ZipFile, ZIP_DEFLATED
           import hashlib, json, subprocess, os
           source = Path('cd-arduino/HouseAudioCDInput')
-          path = Path('LiteOn CD player 3.5.zip')
+          path = Path('LiteOn CD player 3.6.zip')
           app = Path(os.environ['CD_BUILD_DIR'])/'HouseAudioCDInput.ino.bin'
           assert app.is_file() and app.stat().st_size > 100000, 'Compiled binary missing'
           required = [
@@ -82,6 +82,8 @@ jobs:
           assert (source/'LocalNetworkConfig.h').read_bytes()==(source/'LocalNetworkConfig.example.h').read_bytes()
           sketch=(source/'HouseAudioCDInput.ino').read_text()
           assert 'bootSession' in sketch and 'discRevision' in sketch
+          assert 'friendlyName = SOURCE_DISPLAY_NAME;' in sketch
+          assert 'SOURCE_DISPLAY_NAME[] = "LiteOn CD Player";' in (source/'LocalNetworkConfig.h').read_text()
           service=(source/'src/FirmwareService.h').read_text()
           assert service.index('WiFi.setSleep(false)') < service.index('WiFi.begin(')
           assert 'esp_wifi_get_ps(&ps)' in service and 'wifiPowerSave' in service
@@ -92,10 +94,10 @@ jobs:
           assert 'It does not automatically change House Music playback.' not in sketch
           source_sha=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
           identity=(source/'src/BuildIdentity.h').read_text()
-          assert source_sha in identity and '3.5' in identity
+          assert source_sha in identity and '3.6' in identity
           manifest={p:hashlib.sha256((source/p).read_bytes()).hexdigest() for p in required}
           bin_digest=hashlib.sha256(app.read_bytes()).hexdigest()
-          metadata={'source_sha':source_sha,'release_version':'3.5',
+          metadata={'source_sha':source_sha,'release_version':'3.6',
                     'arduino_core':'esp32:esp32@2.0.14','board':'esp32:esp32:XIAO_ESP32S3',
                     'partition_scheme':'default OTA-enabled 1310720 byte app slots',
                     'firmware_bin_sha256':bin_digest,'hardware_verified':False,'files_sha256':manifest}
@@ -103,12 +105,12 @@ jobs:
               for p in required:z.write(source/p,'HouseAudioCDInput/'+p)
               z.write(app,'HouseAudioCDInput.ino.bin')
               z.write('cd-arduino/tools/update_cd_from_pi.py','update_cd_from_pi.py')
-              z.write('cd-arduino/docs/CD_PLAYER_3_5_INSTALL.md','INSTALL.md')
+              z.write('cd-arduino/docs/CD_PLAYER_3_6_INSTALL.md','INSTALL.md')
               z.writestr('SOURCE_MANIFEST.json',json.dumps(metadata,indent=2)+'\n')
-              z.writestr('VERSION.txt','LiteOn CD player 3.5\nSource commit: '+source_sha+
+              z.writestr('VERSION.txt','LiteOn CD player 3.6\nSource commit: '+source_sha+
                          '\nArduino ESP32 core 2.0.14 / XIAO ESP32-S3\n'
                          'Hardware acceptance: NOT VERIFIED\n'
-                         'Already running 3.4 can install 3.5 by Pi OTA; USB flash not needed.\n'
+                         'Already running 3.5 can install 3.6 by Pi OTA; USB flash not needed.\n'
                          'Wi-Fi credentials persist in S3 NVS; no Wi-Fi secret in firmware archive.\n')
           with ZipFile(path) as z:
               assert z.testzip() is None
@@ -121,23 +123,23 @@ jobs:
       - name: Upload verified pair
         uses: actions/upload-artifact@v4
         with:
-          name: LiteOn CD player 3.5
+          name: LiteOn CD player 3.6
           path: |
-            LiteOn CD player 3.5.zip
+            LiteOn CD player 3.6.zip
             SOURCE_MANIFEST.json
           if-no-files-found: error
-      - name: Publish verified authorized 3.5 package
+      - name: Publish verified authorized 3.6 package
         if: github.event_name == 'push'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          cp 'LiteOn CD player 3.5.zip' LiteOn.CD.player.3.5.zip
-          sha256sum LiteOn.CD.player.3.5.zip > LiteOn.CD.player.3.5.sha256
+          cp 'LiteOn CD player 3.6.zip' LiteOn.CD.player.3.6.zip
+          sha256sum LiteOn.CD.player.3.6.zip > LiteOn.CD.player.3.6.sha256
           python3 - <<'PY'
           import hashlib, json, zipfile
           from pathlib import Path
-          path=Path('LiteOn.CD.player.3.5.zip')
+          path=Path('LiteOn.CD.player.3.6.zip')
           meta=json.loads(Path('SOURCE_MANIFEST.json').read_text())
           assert hashlib.sha256(path.read_bytes()).hexdigest()==meta['zip_sha256']
           with zipfile.ZipFile(path) as z:
@@ -148,4 +150,4 @@ jobs:
                   assert hashlib.sha256(z.read('HouseAudioCDInput/'+p)).hexdigest()==d
               assert hashlib.sha256(z.read('HouseAudioCDInput.ino.bin')).hexdigest()==internal['firmware_bin_sha256']
           PY
-          gh release create liteon-cd-3.5 LiteOn.CD.player.3.5.zip LiteOn.CD.player.3.5.sha256 SOURCE_MANIFEST.json --target "$SOURCE_SHA" --title "LiteOn CD player 3.5" --notes "Wi-Fi modem sleep disabled; runtime power-save status. Lossless WAV and all CD/USB behavior unchanged. Built with Arduino ESP32 2.0.14; hardware acceptance pending. 3.4 remains rollback."
+          gh release create liteon-cd-3.6 LiteOn.CD.player.3.6.zip LiteOn.CD.player.3.6.sha256 SOURCE_MANIFEST.json --target "$SOURCE_SHA" --title "LiteOn CD player 3.6" --notes "Source registration name changed to LiteOn CD Player only. Lossless WAV, Wi-Fi and all CD/USB behavior unchanged. Built with Arduino ESP32 2.0.14; hardware acceptance pending. 3.5 remains rollback."
