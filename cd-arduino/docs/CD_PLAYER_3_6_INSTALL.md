@@ -103,3 +103,15 @@ the expected source identity; the updater reports MD5
 Sources page rendering **LiteOn CD Player**, and post-flash CD track playback,
 automatic CD takeover and session restoration. These require new field
 observations, not assumptions from the compile or source identity.
+
+## Name display accepted — owner report, 2026-11-23 (US Eastern)
+
+After the verified 3.6 Pi OTA, the user confirmed: **"Nice work. The name
+is correct now."** The intended **LiteOn CD Player** name is therefore
+**PASS by owner observation on the House Music Sources page**, consistent
+with the S3 registering `SOURCE_DISPLAY_NAME` and the gateway/webpage
+displaying that name. No raw `/inputs` payload was supplied, so the
+gateway's individual JSON fields have not been independently inspected.
+
+**Still open:** Post-3.6 physical CD track playback, automatic takeover and
+session restoration have not been reported in this acceptance update.
